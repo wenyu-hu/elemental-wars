@@ -908,14 +908,14 @@ input[type="number"] { -moz-appearance: textfield; }
   position: absolute;
   bottom: 2px;
   right: 4px;
-  font-size: 2rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--text-primary);
   text-shadow: 0 0 4px var(--bg-primary);
 }
 
 .inv-cell .inv-emoji {
-  font-size: 5rem;
+  font-size: 2rem;
   line-height: 1;
 }
 
@@ -925,7 +925,7 @@ input[type="number"] { -moz-appearance: textfield; }
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 2.5rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -937,7 +937,7 @@ input[type="number"] { -moz-appearance: textfield; }
   position: absolute;
   top: 2px;
   left: 4px;
-  font-size: 2rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: #ff69b4;
   text-shadow: 0 0 4px var(--bg-primary);
@@ -947,7 +947,7 @@ input[type="number"] { -moz-appearance: textfield; }
   position: absolute;
   top: 2px;
   right: 4px;
-  font-size: 2rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--accent);
   text-shadow: 0 0 4px var(--bg-primary);
@@ -1125,7 +1125,7 @@ input[type="number"] { -moz-appearance: textfield; }
 
 /* Name-only cell (no emoji selected) */
 .inv-cell.name-only {
-  font-size: 3.5rem;
+  font-size: 1rem;
   text-align: center;
   padding: 4px;
   word-break: break-word;
