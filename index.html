@@ -12,7 +12,7 @@
   <div id="auth-screen" class="screen active">
     <div class="auth-container">
       <h1 class="game-title">Elemental Wars</h1>
-      <p class="subtitle">Stat Tracker <span class="version-tag">v1.2</span></p>
+      <p class="subtitle">Stat Tracker <span class="version-tag">v1.3</span></p>
       <div class="auth-box">
         <div class="auth-tabs">
           <button class="auth-tab active" data-tab="login">Log In</button>
@@ -37,7 +37,7 @@
   <!-- ==================== DASHBOARD ==================== -->
   <div id="dashboard-screen" class="screen">
     <header class="top-bar">
-      <h2 class="logo">Elemental Wars <span class="version-tag">v1.2</span></h2>
+      <h2 class="logo">Elemental Wars <span class="version-tag">v1.3</span></h2>
       <div class="top-bar-right">
         <span id="current-user-display"></span>
         <button id="logout-btn" class="btn btn-small">Log Out</button>
@@ -65,11 +65,11 @@
               <div class="stat-badges">
                 <div class="stat-badge" title="Tokens">
                   <span class="badge-circle badge-tokens">T</span>
-                  <input type="number" class="stat-input" id="tokens-input" placeholder="—" min="0">
+                  <input type="text" class="stat-input int-or-inf-input" id="tokens-input" placeholder="—">
                 </div>
                 <div class="stat-badge" title="Booster Points">
                   <span class="badge-circle badge-booster">B</span>
-                  <input type="number" class="stat-input" id="booster-input" placeholder="—" min="0">
+                  <input type="text" class="stat-input int-or-inf-input" id="booster-input" placeholder="—">
                 </div>
               </div>
             </div>
@@ -77,7 +77,7 @@
               <div class="username-display" id="sheet-username"></div>
               <div class="level-display">
                 <span>Lv.</span>
-                <input type="number" class="stat-input" id="level-input" placeholder="—" min="0">
+                <input type="text" class="stat-input int-or-inf-input" id="level-input" placeholder="—">
               </div>
             </div>
           </section>
@@ -88,9 +88,9 @@
             <div class="health-bar-container">
               <div class="health-bar-fill" id="health-bar-fill"></div>
               <div class="health-bar-text">
-                <input type="number" id="hp-current" class="hp-input" min="0" value="100">
+                <input type="text" id="hp-current" class="hp-input int-or-inf-input" value="100">
                 <span>/</span>
-                <input type="number" id="hp-max" class="hp-input" min="1" value="100">
+                <input type="text" id="hp-max" class="hp-input int-or-inf-input" value="100">
                 <span>HP</span>
               </div>
             </div>
@@ -122,9 +122,9 @@
                 </select>
               </div>
               <div class="equip-stats">
-                <div class="stat-row"><label>Damage</label><input type="number" data-field="damage" placeholder="—" min="0"></div>
-                <div class="stat-row"><label>Attack Speed</label><input type="number" data-field="attackSpeed" placeholder="—" min="0"><span class="stat-unit">sec</span></div>
-                <div class="stat-row"><label>Range</label><input type="number" data-field="range" placeholder="—" min="0"></div>
+                <div class="stat-row"><label>Damage</label><input type="text" data-field="damage" placeholder="—" class="int-or-inf-input"></div>
+                <div class="stat-row"><label>Attack Speed</label><input type="text" data-field="attackSpeed" placeholder="—" class="int-or-inf-input"><span class="stat-unit">sec</span></div>
+                <div class="stat-row"><label>Range</label><input type="text" data-field="range" placeholder="—" class="int-or-inf-input"></div>
                 <div class="stat-row stat-row-wide"><label>Specialities</label><textarea data-field="specialities" class="specialities-textarea" placeholder="—"></textarea></div>
               </div>
               <div class="enchantments-section">
@@ -160,13 +160,13 @@
                 </select>
               </div>
               <div class="equip-stats">
-                <div class="stat-row"><label>Defence Level</label><input type="number" data-field="defenceLevel" placeholder="—" min="0"></div>
+                <div class="stat-row"><label>Defence Level</label><input type="text" data-field="defenceLevel" placeholder="—" class="int-pct-inf-input"></div>
                 <div class="stat-row">
                   <label>Durability</label>
                   <div class="transport-hp">
-                    <input type="number" data-field="currentDurability" placeholder="—" min="0">
+                    <input type="text" data-field="currentDurability" placeholder="—" class="int-or-inf-input">
                     <span>/</span>
-                    <input type="number" data-field="maxDurability" placeholder="—" min="1">
+                    <input type="text" data-field="maxDurability" placeholder="—" class="int-or-inf-input">
                   </div>
                 </div>
               </div>
@@ -203,9 +203,9 @@
                 </select>
               </div>
               <div class="equip-stats">
-                <div class="stat-row"><label>Projectile Speed</label><input type="number" data-field="projectileSpeed" placeholder="—" min="0"></div>
+                <div class="stat-row"><label>Projectile Speed</label><input type="text" data-field="projectileSpeed" placeholder="—" class="int-or-inf-input"></div>
                 <div class="stat-row stat-row-wide"><label>Specialities</label><textarea data-field="specialities" class="specialities-textarea" placeholder="—"></textarea></div>
-                <div class="stat-row"><label>Reload</label><input type="number" data-field="reload" placeholder="—" min="0"><span class="stat-unit">sec</span></div>
+                <div class="stat-row"><label>Reload</label><input type="text" data-field="reload" placeholder="—" class="int-or-inf-input"><span class="stat-unit">sec</span></div>
               </div>
               <div class="enchantments-section">
                 <label class="enchant-label">Enchantments</label>
@@ -240,7 +240,7 @@
                 </select>
               </div>
               <div class="equip-stats">
-                <div class="stat-row"><label>Defence Level</label><input type="number" data-field="defenceLevel" placeholder="—" min="0"></div>
+                <div class="stat-row"><label>Defence Level</label><input type="text" data-field="defenceLevel" placeholder="—" class="int-pct-inf-input"></div>
                 <div class="stat-row stat-row-wide"><label>Specialities</label><textarea data-field="specialities" class="specialities-textarea" placeholder="—"></textarea></div>
               </div>
               <div class="enchantments-section">
@@ -276,9 +276,9 @@
                 </select>
               </div>
               <div class="equip-stats">
-                <div class="stat-row"><label>Level</label><input type="number" data-field="level" placeholder="—" min="0"></div>
-                <div class="stat-row"><label>Duration</label><input type="number" data-field="duration" placeholder="—" min="0"><span class="stat-unit">sec</span></div>
-                <div class="stat-row"><label>Reload</label><input type="number" data-field="reload" placeholder="—" min="0"><span class="stat-unit">sec</span></div>
+                <div class="stat-row"><label>Level</label><input type="text" data-field="level" placeholder="—" class="int-or-inf-input"></div>
+                <div class="stat-row"><label>Duration</label><input type="text" data-field="duration" placeholder="—" class="int-or-inf-input"><span class="stat-unit">sec</span></div>
+                <div class="stat-row"><label>Reload</label><input type="text" data-field="reload" placeholder="—" class="int-or-inf-input"><span class="stat-unit">sec</span></div>
                 <div class="stat-row"><label>Effect</label><input type="text" data-field="effect" placeholder="—"></div>
               </div>
               <div class="enchantments-section">
@@ -317,9 +317,9 @@
                 <div class="stat-row">
                   <label>Health</label>
                   <div class="transport-hp">
-                    <input type="number" data-field="currentHP" placeholder="—" min="0">
+                    <input type="text" data-field="currentHP" placeholder="—" class="int-or-inf-input">
                     <span>/</span>
-                    <input type="number" data-field="maxHP" placeholder="—" min="1">
+                    <input type="text" data-field="maxHP" placeholder="—" class="int-or-inf-input">
                     <span>HP</span>
                   </div>
                 </div>
@@ -328,9 +328,9 @@
                   <div class="list-items" id="transport-weapons-list"></div>
                   <div class="enchant-add">
                     <input type="text" placeholder="Weapon name" class="list-input transport-weapon-name-input">
-                    <input type="number" placeholder="Ammo" class="list-input list-input-small transport-weapon-ammo-input" min="0">
+                    <input type="text" placeholder="Ammo" class="list-input list-input-small transport-weapon-ammo-input int-or-inf-input">
                     <span class="stat-unit">/</span>
-                    <input type="number" placeholder="Max" class="list-input list-input-small transport-weapon-maxammo-input" min="1">
+                    <input type="text" placeholder="Max" class="list-input list-input-small transport-weapon-maxammo-input int-or-inf-input">
                     <button class="btn btn-small btn-add transport-weapon-add-btn">Add</button>
                   </div>
                 </div>
@@ -381,17 +381,17 @@
                 <div class="accessory-slot">
                   <label>Necklace</label>
                   <input type="text" id="acc-necklace" placeholder="Name" data-field="necklace">
-                  <input type="text" id="acc-necklace-effect" placeholder="Effect" data-field="necklaceEffect" class="acc-effect-input">
+                  <textarea id="acc-necklace-effect" placeholder="Effect" data-field="necklaceEffect" class="specialities-textarea acc-effect-textarea"></textarea>
                 </div>
                 <div class="accessory-slot">
                   <label>Bracelet</label>
                   <input type="text" id="acc-bracelet" placeholder="Name" data-field="bracelet">
-                  <input type="text" id="acc-bracelet-effect" placeholder="Effect" data-field="braceletEffect" class="acc-effect-input">
+                  <textarea id="acc-bracelet-effect" placeholder="Effect" data-field="braceletEffect" class="specialities-textarea acc-effect-textarea"></textarea>
                 </div>
                 <div class="accessory-slot">
                   <label>Ring</label>
                   <input type="text" id="acc-ring" placeholder="Name" data-field="ring">
-                  <input type="text" id="acc-ring-effect" placeholder="Effect" data-field="ringEffect" class="acc-effect-input">
+                  <textarea id="acc-ring-effect" placeholder="Effect" data-field="ringEffect" class="specialities-textarea acc-effect-textarea"></textarea>
                 </div>
               </div>
             </div>
@@ -420,7 +420,7 @@
                     <option value="Yellow Mega Gem">Yellow Mega Gem</option>
                     <option value="Purple Mega Gem">Purple Mega Gem</option>
                   </select>
-                  <input type="number" placeholder="Qty" class="list-input list-input-small" id="mega-gem-qty-input" min="1">
+                  <input type="text" placeholder="Qty" class="list-input list-input-small int-or-inf-input" id="mega-gem-qty-input">
                   <div class="mega-gem-prime-row">
                     <label class="prime-toggle-label">
                       <input type="checkbox" id="mega-gem-prime-input"> Prime
@@ -444,7 +444,7 @@
               <div class="list-items" id="arrows-list"></div>
               <div class="list-add">
                 <input type="text" placeholder="Arrow type" class="list-input" id="arrow-name-input">
-                <input type="number" placeholder="Qty" class="list-input list-input-small" id="arrow-count-input" min="0">
+                <input type="text" placeholder="Qty" class="list-input list-input-small int-or-inf-input" id="arrow-count-input">
                 <button class="btn btn-small btn-add" id="add-arrow-btn">Add</button>
               </div>
             </div>
@@ -503,7 +503,7 @@
       </div>
       <div class="inv-modal-row">
         <label>Quantity (optional)</label>
-        <input type="number" id="inv-count-input" placeholder="—" min="1" autocomplete="off">
+        <input type="text" id="inv-count-input" placeholder="—" class="int-or-inf-input" autocomplete="off">
       </div>
       <div class="inv-modal-row">
         <label>Type</label>

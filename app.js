@@ -377,38 +377,62 @@ function saveNestedField(category, field, value) {
 
 // --- Auto-save listeners ---
 
-// Level, tokens, booster
+// Level, tokens, booster (accept integers or ∞)
 document.getElementById("level-input").addEventListener("change", function () {
-  const v = this.value === "" ? null : parseInt(this.value, 10);
-  saveField("level", isNaN(v) ? null : v);
+  const v = parseIntOrInf(this.value);
+  saveField("level", v);
 });
 document.getElementById("tokens-input").addEventListener("change", function () {
-  const v = this.value === "" ? null : parseInt(this.value, 10);
-  saveField("tokens", isNaN(v) ? null : v);
+  const v = parseIntOrInf(this.value);
+  saveField("tokens", v);
 });
 document.getElementById("booster-input").addEventListener("change", function () {
-  const v = this.value === "" ? null : parseInt(this.value, 10);
-  saveField("boosterPoints", isNaN(v) ? null : v);
+  const v = parseIntOrInf(this.value);
+  saveField("boosterPoints", v);
 });
 
-// HP
+// HP (accept integers or ∞)
 document.getElementById("hp-current").addEventListener("change", function () {
-  const v = parseInt(this.value, 10);
-  if (!isNaN(v) && v >= 0) {
+  const v = parseIntOrInf(this.value);
+  if (v !== null) {
     saveField("currentHP", v);
-    updateHealthBar(v, parseInt(document.getElementById("hp-max").value, 10) || 100);
+    const maxVal = parseIntOrInf(document.getElementById("hp-max").value);
+    updateHealthBar(typeof v === "number" ? v : 100, typeof maxVal === "number" ? maxVal : 100);
   }
 });
 document.getElementById("hp-max").addEventListener("change", function () {
-  const v = parseInt(this.value, 10);
-  if (!isNaN(v) && v >= 1) {
+  const v = parseIntOrInf(this.value);
+  if (v !== null) {
     saveField("maxHP", v);
-    updateHealthBar(parseInt(document.getElementById("hp-current").value, 10) || 0, v);
+    const curVal = parseIntOrInf(document.getElementById("hp-current").value);
+    updateHealthBar(typeof curVal === "number" ? curVal : 0, typeof v === "number" ? v : 100);
   }
 });
 
 // Fields that remain as text (not integer)
 const TEXT_STAT_FIELDS = new Set(["name", "rarity", "exclusiveNum", "specialities", "enchantments", "effect"]);
+
+// Fields that accept integers, ∞, or % (defence levels)
+const INT_PCT_INF_FIELDS = new Set(["defenceLevel"]);
+
+// Validate an integer-or-infinity input; returns the cleaned value or null
+function parseIntOrInf(val) {
+  val = val.trim();
+  if (val === "" || val === "—") return null;
+  if (val === "∞") return "∞";
+  const n = parseInt(val, 10);
+  return isNaN(n) ? null : n;
+}
+
+// Validate integer, ∞, or percentage (e.g. "50%")
+function parseIntPctOrInf(val) {
+  val = val.trim();
+  if (val === "" || val === "—") return null;
+  if (val === "∞") return "∞";
+  if (/^\d+%$/.test(val)) return val; // e.g. "50%"
+  const n = parseInt(val, 10);
+  return isNaN(n) ? null : n;
+}
 
 // Equipment cards - auto-save on change/blur
 document.querySelectorAll(".equip-card").forEach(card => {
@@ -426,10 +450,17 @@ document.querySelectorAll(".equip-card").forEach(card => {
       let value;
       if (TEXT_STAT_FIELDS.has(field)) {
         value = el.value;
+      } else if (INT_PCT_INF_FIELDS.has(field)) {
+        value = parseIntPctOrInf(el.value);
+        if (value === null && el.value.trim() !== "" && el.value.trim() !== "—") {
+          el.value = ""; // invalid input, clear it
+        }
       } else {
-        // Integer field
-        value = el.value === "" ? null : parseInt(el.value, 10);
-        if (isNaN(value)) value = null;
+        // Integer or ∞ field
+        value = parseIntOrInf(el.value);
+        if (value === null && el.value.trim() !== "" && el.value.trim() !== "—") {
+          el.value = ""; // invalid input, clear it
+        }
       }
       saveNestedField(cat, field, value);
 
@@ -450,8 +481,8 @@ document.querySelectorAll(".equip-card").forEach(card => {
   });
 });
 
-// Accessories
-document.querySelectorAll(".accessory-slot input").forEach(inp => {
+// Accessories (inputs and textareas)
+document.querySelectorAll(".accessory-slot input, .accessory-slot textarea").forEach(inp => {
   inp.addEventListener("blur", () => {
     if (!currentUser || viewingUser) return;
     saveNestedField("accessories", inp.dataset.field, inp.value);
@@ -594,8 +625,8 @@ document.getElementById("add-arrow-btn").addEventListener("click", async () => {
   const nameInput = document.getElementById("arrow-name-input");
   const countInput = document.getElementById("arrow-count-input");
   const type = nameInput.value.trim();
-  const count = parseInt(countInput.value, 10);
-  if (!type || isNaN(count) || count < 0 || !currentUser || viewingUser) return;
+  const count = parseIntOrInf(countInput.value);
+  if (!type || count === null || !currentUser || viewingUser) return;
   const doc = await db.collection("users").doc(currentUser).get();
   const arrows = doc.data().arrows || [];
   arrows.push({ type, count });
@@ -971,7 +1002,7 @@ document.getElementById("inv-save-btn").addEventListener("click", async () => {
     emoji: emoji,
     type: type,
     rarity: type === "food" ? "" : rarity,
-    count: countVal ? parseInt(countVal) : null,
+    count: countVal ? parseIntOrInf(countVal) : null,
     exclusivePower: rarity === "exclusive" ? parseInt(exclusivePower) : null,
     artifactLevel: type === "artifact" ? parseInt(artifactLevel) : null
   };
@@ -1125,9 +1156,9 @@ document.querySelector(".transport-weapon-add-btn").addEventListener("click", as
   const ammoInput = card.querySelector(".transport-weapon-ammo-input");
   const maxAmmoInput = card.querySelector(".transport-weapon-maxammo-input");
   const name = nameInput.value.trim();
-  const ammo = parseInt(ammoInput.value, 10);
-  const maxAmmo = parseInt(maxAmmoInput.value, 10);
-  if (!name || isNaN(ammo) || ammo < 0 || isNaN(maxAmmo) || maxAmmo < 1) return;
+  const ammo = parseIntOrInf(ammoInput.value);
+  const maxAmmo = parseIntOrInf(maxAmmoInput.value);
+  if (!name || ammo === null || maxAmmo === null) return;
   const doc = await db.collection("users").doc(currentUser).get();
   const catData = doc.data().transportation || {};
   let weapons = catData.weapons || [];
@@ -1202,11 +1233,11 @@ document.getElementById("add-mega-gem-btn").addEventListener("click", async () =
   const outlineInput = document.getElementById("mega-gem-outline-input");
 
   const type = typeInput.value;
-  const quantity = parseInt(qtyInput.value, 10);
+  const quantity = parseIntOrInf(qtyInput.value);
   const prime = primeInput.checked;
   const outline = outlineInput.value;
 
-  if (!type || isNaN(quantity) || quantity < 1) return;
+  if (!type || quantity === null) return;
   if (prime && !outline) return; // Must pick outline if prime
 
   const doc = await db.collection("users").doc(currentUser).get();

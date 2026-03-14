@@ -800,11 +800,11 @@ input[type="number"] { -moz-appearance: textfield; }
   min-width: 100px;
 }
 
-/* Accessory effect input */
-.acc-effect-input {
-  flex: 1;
-  max-width: 120px;
-  font-size: 0.8rem !important;
+/* Accessory effect textarea (matches specialities style) */
+.acc-effect-textarea {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 4px;
 }
 
 /* Weapons list in transportation */
