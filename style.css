@@ -1080,6 +1080,51 @@ input[type="number"] { -moz-appearance: textfield; }
   margin-right: 6px;
 }
 
+.emoji-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.emoji-input-row input:first-child {
+  flex: 1;
+}
+
+.emoji-or {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.emoji-paste-input {
+  width: 70px !important;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 1.2rem !important;
+}
+
+/* Name-only cell (no emoji selected) */
+.inv-cell.name-only {
+  font-size: 0.65rem;
+  text-align: center;
+  padding: 4px;
+  word-break: break-word;
+  line-height: 1.2;
+  color: var(--text-primary);
+  flex-direction: column;
+}
+
+.inv-cell.name-only .inv-name {
+  position: static;
+  font-size: inherit;
+  color: inherit;
+  white-space: normal;
+}
+
+.inv-cell.name-only .inv-count {
+  font-size: 0.55rem;
+}
+
 .modal-buttons {
   display: flex;
   gap: 8px;

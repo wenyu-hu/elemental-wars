@@ -534,8 +534,12 @@
         </select>
       </div>
       <div class="inv-modal-row">
-        <label>Icon</label>
-        <input type="text" id="inv-emoji-search" placeholder="Search for icon..." autocomplete="off">
+        <label>Icon (search or paste your own emoji)</label>
+        <div class="emoji-input-row">
+          <input type="text" id="inv-emoji-search" placeholder="Search for icon..." autocomplete="off">
+          <span class="emoji-or">or</span>
+          <input type="text" id="inv-emoji-paste" placeholder="Paste emoji" autocomplete="off" maxlength="4" class="emoji-paste-input">
+        </div>
         <div class="emoji-results" id="emoji-results"></div>
         <div class="emoji-selected" id="emoji-selected"></div>
       </div>
