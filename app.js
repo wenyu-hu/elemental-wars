@@ -107,7 +107,7 @@ function defaultProfile() {
     currentHP: 100,
     maxHP: 100,
     meleeWeapon: { name: "", rarity: "", exclusiveNum: "", damage: null, attackSpeed: null, range: null, specialities: "", enchantments: [] },
-    defence: { name: "", rarity: "", exclusiveNum: "", defenceLevel: null, durability: null, enchantments: [] },
+    defence: { name: "", rarity: "", exclusiveNum: "", defenceLevel: null, currentDurability: null, maxDurability: null, enchantments: [] },
     rangedWeapon: { name: "", rarity: "", exclusiveNum: "", projectileSpeed: null, specialities: "", reload: null, enchantments: [] },
     armour: { name: "", rarity: "", exclusiveNum: "", defenceLevel: null, specialities: "", enchantments: [] },
     artifact: { name: "", rarity: "", exclusiveNum: "", level: null, duration: null, reload: null, effect: null, enchantments: [] },

@@ -544,6 +544,13 @@ input[type="number"] { -moz-appearance: textfield; }
   border-color: var(--border);
 }
 
+.stat-unit {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
 .transport-hp {
   display: flex;
   align-items: center;

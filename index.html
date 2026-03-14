@@ -123,7 +123,7 @@
               </div>
               <div class="equip-stats">
                 <div class="stat-row"><label>Damage</label><input type="number" data-field="damage" placeholder="—" min="0"></div>
-                <div class="stat-row"><label>Attack Speed</label><input type="number" data-field="attackSpeed" placeholder="—" min="0"></div>
+                <div class="stat-row"><label>Attack Speed</label><input type="number" data-field="attackSpeed" placeholder="—" min="0"><span class="stat-unit">sec</span></div>
                 <div class="stat-row"><label>Range</label><input type="number" data-field="range" placeholder="—" min="0"></div>
                 <div class="stat-row"><label>Specialities</label><input type="text" data-field="specialities" placeholder="—"></div>
               </div>
@@ -161,7 +161,14 @@
               </div>
               <div class="equip-stats">
                 <div class="stat-row"><label>Defence Level</label><input type="number" data-field="defenceLevel" placeholder="—" min="0"></div>
-                <div class="stat-row"><label>Durability</label><input type="number" data-field="durability" placeholder="—" min="0"></div>
+                <div class="stat-row">
+                  <label>Durability</label>
+                  <div class="transport-hp">
+                    <input type="number" data-field="currentDurability" placeholder="—" min="0">
+                    <span>/</span>
+                    <input type="number" data-field="maxDurability" placeholder="—" min="1">
+                  </div>
+                </div>
               </div>
               <div class="enchantments-section">
                 <label class="enchant-label">Enchantments</label>
@@ -198,7 +205,7 @@
               <div class="equip-stats">
                 <div class="stat-row"><label>Projectile Speed</label><input type="number" data-field="projectileSpeed" placeholder="—" min="0"></div>
                 <div class="stat-row"><label>Specialities</label><input type="text" data-field="specialities" placeholder="—"></div>
-                <div class="stat-row"><label>Reload</label><input type="number" data-field="reload" placeholder="—" min="0"></div>
+                <div class="stat-row"><label>Reload</label><input type="number" data-field="reload" placeholder="—" min="0"><span class="stat-unit">sec</span></div>
               </div>
               <div class="enchantments-section">
                 <label class="enchant-label">Enchantments</label>
@@ -270,8 +277,8 @@
               </div>
               <div class="equip-stats">
                 <div class="stat-row"><label>Level</label><input type="number" data-field="level" placeholder="—" min="0"></div>
-                <div class="stat-row"><label>Duration</label><input type="number" data-field="duration" placeholder="—" min="0"></div>
-                <div class="stat-row"><label>Reload</label><input type="number" data-field="reload" placeholder="—" min="0"></div>
+                <div class="stat-row"><label>Duration</label><input type="number" data-field="duration" placeholder="—" min="0"><span class="stat-unit">sec</span></div>
+                <div class="stat-row"><label>Reload</label><input type="number" data-field="reload" placeholder="—" min="0"><span class="stat-unit">sec</span></div>
                 <div class="stat-row"><label>Effect</label><input type="number" data-field="effect" placeholder="—" min="0"></div>
               </div>
               <div class="enchantments-section">
