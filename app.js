@@ -415,6 +415,36 @@ const TEXT_STAT_FIELDS = new Set(["name", "rarity", "exclusiveNum", "specialitie
 // Fields that accept integers, ∞, or % (defence levels)
 const INT_PCT_INF_FIELDS = new Set(["defenceLevel"]);
 
+// --- Input filtering: only allow digits and ∞ (and % for defence level fields) ---
+document.querySelectorAll(".int-or-inf-input").forEach(input => {
+  input.addEventListener("input", function () {
+    const val = this.value;
+    if (val === "∞" || val === "") return; // always allowed
+    // Strip anything that isn't a digit or ∞
+    this.value = val.replace(/[^0-9∞]/g, "");
+    // If it contains ∞ mixed with other chars, keep only ∞
+    if (this.value.includes("∞")) this.value = "∞";
+  });
+});
+
+document.querySelectorAll(".int-pct-inf-input").forEach(input => {
+  input.addEventListener("input", function () {
+    const val = this.value;
+    if (val === "∞" || val === "") return;
+    // Allow digits, ∞, and % (only at end)
+    this.value = val.replace(/[^0-9∞%]/g, "");
+    if (this.value.includes("∞")) this.value = "∞";
+    // Ensure % only appears at the end and only once
+    const pctCount = (this.value.match(/%/g) || []).length;
+    if (pctCount > 1) {
+      this.value = this.value.replace(/%/g, "") + "%";
+    }
+    if (this.value.includes("%") && !this.value.endsWith("%")) {
+      this.value = this.value.replace(/%/g, "") + "%";
+    }
+  });
+});
+
 // Validate an integer-or-infinity input; returns the cleaned value or null
 function parseIntOrInf(val) {
   val = val.trim();
