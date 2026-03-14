@@ -925,12 +925,32 @@ input[type="number"] { -moz-appearance: textfield; }
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 0.4rem;
+  font-size: 0.55rem;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   padding: 0 2px;
+}
+
+.inv-cell .inv-power {
+  position: absolute;
+  top: 1px;
+  left: 3px;
+  font-size: 0.5rem;
+  font-weight: 700;
+  color: #ff69b4;
+  text-shadow: 0 0 3px var(--bg-primary);
+}
+
+.inv-cell .inv-level {
+  position: absolute;
+  top: 1px;
+  right: 2px;
+  font-size: 0.45rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-shadow: 0 0 3px var(--bg-primary);
 }
 
 /* Rarity border colors */
@@ -1105,7 +1125,7 @@ input[type="number"] { -moz-appearance: textfield; }
 
 /* Name-only cell (no emoji selected) */
 .inv-cell.name-only {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   text-align: center;
   padding: 4px;
   word-break: break-word;

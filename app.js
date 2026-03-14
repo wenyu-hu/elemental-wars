@@ -716,6 +716,20 @@ function renderInventory(inventory) {
         countSpan.textContent = item.count;
         cell.appendChild(countSpan);
       }
+      // Exclusive power badge (top-left)
+      if (item.exclusivePower) {
+        const powerSpan = document.createElement("span");
+        powerSpan.className = "inv-power";
+        powerSpan.textContent = item.exclusivePower;
+        cell.appendChild(powerSpan);
+      }
+      // Artifact level badge (top-right)
+      if (item.artifactLevel) {
+        const levelSpan = document.createElement("span");
+        levelSpan.className = "inv-level";
+        levelSpan.textContent = "Lv." + item.artifactLevel;
+        cell.appendChild(levelSpan);
+      }
     } else if (item && typeof item === "string") {
       // Legacy string format - show with old logic
       const parsed = parseInventoryInput(item);
@@ -754,12 +768,21 @@ function openInventoryModal(index, currentItem) {
 
   const emojiPaste = document.getElementById("inv-emoji-paste");
 
+  const exclusivePowerRow = document.getElementById("inv-exclusive-power-row");
+  const exclusivePowerInput = document.getElementById("inv-exclusive-power-input");
+  const artifactLevelRow = document.getElementById("inv-artifact-level-row");
+  const artifactLevelInput = document.getElementById("inv-artifact-level-input");
+
   // Reset
   nameInput.value = "";
   countInput.value = "";
   typeInput.value = "";
   rarityInput.value = "";
   rarityRow.style.display = "";
+  exclusivePowerRow.classList.add("hidden");
+  exclusivePowerInput.value = "";
+  artifactLevelRow.classList.add("hidden");
+  artifactLevelInput.value = "";
   emojiSearch.value = "";
   emojiPaste.value = "";
   emojiResults.innerHTML = "";
@@ -774,6 +797,14 @@ function openInventoryModal(index, currentItem) {
     if (currentItem.type === "food") {
       rarityRow.style.display = "none";
     }
+    if (currentItem.rarity === "exclusive") {
+      exclusivePowerRow.classList.remove("hidden");
+      exclusivePowerInput.value = currentItem.exclusivePower || "";
+    }
+    if (currentItem.type === "artifact") {
+      artifactLevelRow.classList.remove("hidden");
+      artifactLevelInput.value = currentItem.artifactLevel || "";
+    }
     if (currentItem.emoji) {
       selectedEmoji = currentItem.emoji;
       emojiSelected.innerHTML = `<span class="selected-emoji-display">${currentItem.emoji}</span> Selected`;
@@ -784,17 +815,45 @@ function openInventoryModal(index, currentItem) {
   nameInput.focus();
 }
 
-// Type change: hide rarity for food
-document.getElementById("inv-type-input").addEventListener("change", () => {
+// Helper to update conditional rows
+function updateInventoryConditionalRows() {
   const typeVal = document.getElementById("inv-type-input").value;
+  const rarityVal = document.getElementById("inv-rarity-input").value;
   const rarityRow = document.getElementById("inv-rarity-row");
+  const exclusivePowerRow = document.getElementById("inv-exclusive-power-row");
+  const artifactLevelRow = document.getElementById("inv-artifact-level-row");
+
+  // Food hides rarity
   if (typeVal === "food") {
     rarityRow.style.display = "none";
     document.getElementById("inv-rarity-input").value = "";
+    exclusivePowerRow.classList.add("hidden");
   } else {
     rarityRow.style.display = "";
   }
-});
+
+  // Exclusive shows power selector
+  if (rarityVal === "exclusive" && typeVal !== "food") {
+    exclusivePowerRow.classList.remove("hidden");
+  } else {
+    exclusivePowerRow.classList.add("hidden");
+    document.getElementById("inv-exclusive-power-input").value = "";
+  }
+
+  // Artifact shows level selector
+  if (typeVal === "artifact") {
+    artifactLevelRow.classList.remove("hidden");
+  } else {
+    artifactLevelRow.classList.add("hidden");
+    document.getElementById("inv-artifact-level-input").value = "";
+  }
+}
+
+// Type change
+document.getElementById("inv-type-input").addEventListener("change", updateInventoryConditionalRows);
+
+// Rarity change
+document.getElementById("inv-rarity-input").addEventListener("change", updateInventoryConditionalRows);
 
 // Emoji search/picker
 document.getElementById("inv-emoji-search").addEventListener("input", (e) => {
@@ -891,6 +950,18 @@ document.getElementById("inv-save-btn").addEventListener("click", async () => {
     alert("Please select a rarity.");
     return;
   }
+  // Exclusive requires power
+  const exclusivePower = document.getElementById("inv-exclusive-power-input").value;
+  if (rarity === "exclusive" && !exclusivePower) {
+    alert("Exclusive items require a power level (1–8).");
+    return;
+  }
+  // Artifact requires level
+  const artifactLevel = document.getElementById("inv-artifact-level-input").value;
+  if (type === "artifact" && !artifactLevel) {
+    alert("Artifacts require a level (1–10).");
+    return;
+  }
 
   // Use selected emoji, or null if none picked (name-only mode)
   const emoji = selectedEmoji || null;
@@ -900,7 +971,9 @@ document.getElementById("inv-save-btn").addEventListener("click", async () => {
     emoji: emoji,
     type: type,
     rarity: type === "food" ? "" : rarity,
-    count: countVal ? parseInt(countVal) : null
+    count: countVal ? parseInt(countVal) : null,
+    exclusivePower: rarity === "exclusive" ? parseInt(exclusivePower) : null,
+    artifactLevel: type === "artifact" ? parseInt(artifactLevel) : null
   };
 
   const doc = await db.collection("users").doc(currentUser).get();
