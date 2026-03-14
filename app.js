@@ -1216,7 +1216,7 @@ async function removeTransportWeapon(index) {
 // MEGA GEMS
 // ============================================
 const MEGA_GEM_COLORS = {
-  "Black Mega Gem": "#333",
+  "Black Mega Gem": "#aaaaaa",
   "Blue Mega Gem": "#4488ff",
   "Yellow Mega Gem": "#ffcc00",
   "Purple Mega Gem": "#aa66dd"
