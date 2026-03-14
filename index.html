@@ -125,7 +125,7 @@
                 <div class="stat-row"><label>Damage</label><input type="number" data-field="damage" placeholder="—" min="0"></div>
                 <div class="stat-row"><label>Attack Speed</label><input type="number" data-field="attackSpeed" placeholder="—" min="0"><span class="stat-unit">sec</span></div>
                 <div class="stat-row"><label>Range</label><input type="number" data-field="range" placeholder="—" min="0"></div>
-                <div class="stat-row"><label>Specialities</label><input type="text" data-field="specialities" placeholder="—"></div>
+                <div class="stat-row stat-row-wide"><label>Specialities</label><textarea data-field="specialities" class="specialities-textarea" placeholder="—"></textarea></div>
               </div>
               <div class="enchantments-section">
                 <label class="enchant-label">Enchantments</label>
@@ -204,7 +204,7 @@
               </div>
               <div class="equip-stats">
                 <div class="stat-row"><label>Projectile Speed</label><input type="number" data-field="projectileSpeed" placeholder="—" min="0"></div>
-                <div class="stat-row"><label>Specialities</label><input type="text" data-field="specialities" placeholder="—"></div>
+                <div class="stat-row stat-row-wide"><label>Specialities</label><textarea data-field="specialities" class="specialities-textarea" placeholder="—"></textarea></div>
                 <div class="stat-row"><label>Reload</label><input type="number" data-field="reload" placeholder="—" min="0"><span class="stat-unit">sec</span></div>
               </div>
               <div class="enchantments-section">
@@ -241,7 +241,7 @@
               </div>
               <div class="equip-stats">
                 <div class="stat-row"><label>Defence Level</label><input type="number" data-field="defenceLevel" placeholder="—" min="0"></div>
-                <div class="stat-row"><label>Specialities</label><input type="text" data-field="specialities" placeholder="—"></div>
+                <div class="stat-row stat-row-wide"><label>Specialities</label><textarea data-field="specialities" class="specialities-textarea" placeholder="—"></textarea></div>
               </div>
               <div class="enchantments-section">
                 <label class="enchant-label">Enchantments</label>
@@ -279,7 +279,7 @@
                 <div class="stat-row"><label>Level</label><input type="number" data-field="level" placeholder="—" min="0"></div>
                 <div class="stat-row"><label>Duration</label><input type="number" data-field="duration" placeholder="—" min="0"><span class="stat-unit">sec</span></div>
                 <div class="stat-row"><label>Reload</label><input type="number" data-field="reload" placeholder="—" min="0"><span class="stat-unit">sec</span></div>
-                <div class="stat-row"><label>Effect</label><input type="number" data-field="effect" placeholder="—" min="0"></div>
+                <div class="stat-row"><label>Effect</label><input type="text" data-field="effect" placeholder="—"></div>
               </div>
               <div class="enchantments-section">
                 <label class="enchant-label">Enchantments</label>
@@ -323,7 +323,15 @@
                     <span>HP</span>
                   </div>
                 </div>
-                <div class="stat-row"><label>Weapons</label><input type="number" data-field="weapons" placeholder="—" min="0"></div>
+                <div class="weapons-list-section">
+                  <label class="enchant-label">Weapons</label>
+                  <div class="list-items" id="transport-weapons-list"></div>
+                  <div class="enchant-add">
+                    <input type="text" placeholder="Weapon name" class="list-input transport-weapon-name-input">
+                    <input type="number" placeholder="Ammo" class="list-input list-input-small transport-weapon-ammo-input" min="0">
+                    <button class="btn btn-small btn-add transport-weapon-add-btn">Add</button>
+                  </div>
+                </div>
               </div>
               <div class="enchantments-section">
                 <label class="enchant-label">Enchantments</label>
@@ -370,15 +378,18 @@
               <div class="accessory-slots">
                 <div class="accessory-slot">
                   <label>Necklace</label>
-                  <input type="text" id="acc-necklace" placeholder="—" data-field="necklace">
+                  <input type="text" id="acc-necklace" placeholder="Name" data-field="necklace">
+                  <input type="text" id="acc-necklace-effect" placeholder="Effect" data-field="necklaceEffect" class="acc-effect-input">
                 </div>
                 <div class="accessory-slot">
                   <label>Bracelet</label>
-                  <input type="text" id="acc-bracelet" placeholder="—" data-field="bracelet">
+                  <input type="text" id="acc-bracelet" placeholder="Name" data-field="bracelet">
+                  <input type="text" id="acc-bracelet-effect" placeholder="Effect" data-field="braceletEffect" class="acc-effect-input">
                 </div>
                 <div class="accessory-slot">
                   <label>Ring</label>
-                  <input type="text" id="acc-ring" placeholder="—" data-field="ring">
+                  <input type="text" id="acc-ring" placeholder="Name" data-field="ring">
+                  <input type="text" id="acc-ring-effect" placeholder="Effect" data-field="ringEffect" class="acc-effect-input">
                 </div>
               </div>
             </div>
@@ -386,10 +397,42 @@
             <!-- Gems -->
             <div class="list-card" data-list="gems">
               <h3><span class="list-icon">&#128142;</span> Gems</h3>
-              <div class="list-items" id="gems-list"></div>
-              <div class="list-add">
-                <input type="text" placeholder="Gem name" class="list-input" id="gem-name-input">
-                <button class="btn btn-small btn-add" id="add-gem-btn">Add</button>
+              <!-- Normal Gems -->
+              <div class="gem-subcategory">
+                <h4 class="gem-sub-title">Normal</h4>
+                <div class="list-items" id="gems-normal-list"></div>
+                <div class="list-add">
+                  <input type="text" placeholder="Gem name" class="list-input" id="gem-name-input">
+                  <button class="btn btn-small btn-add" id="add-gem-btn">Add</button>
+                </div>
+              </div>
+              <!-- Mega Gems -->
+              <div class="gem-subcategory">
+                <h4 class="gem-sub-title">Mega</h4>
+                <div class="list-items" id="gems-mega-list"></div>
+                <div class="list-add mega-gem-add">
+                  <select class="list-input" id="mega-gem-type-input">
+                    <option value="">Select type</option>
+                    <option value="Black Mega Gem">Black Mega Gem</option>
+                    <option value="Blue Mega Gem">Blue Mega Gem</option>
+                    <option value="Yellow Mega Gem">Yellow Mega Gem</option>
+                    <option value="Purple Mega Gem">Purple Mega Gem</option>
+                  </select>
+                  <input type="number" placeholder="Qty" class="list-input list-input-small" id="mega-gem-qty-input" min="1">
+                  <div class="mega-gem-prime-row">
+                    <label class="prime-toggle-label">
+                      <input type="checkbox" id="mega-gem-prime-input"> Prime
+                    </label>
+                    <select class="list-input list-input-small hidden" id="mega-gem-outline-input">
+                      <option value="">Outline</option>
+                      <option value="Red">Red</option>
+                      <option value="Light blue">Light blue</option>
+                      <option value="Green">Green</option>
+                      <option value="Yellow">Yellow</option>
+                    </select>
+                  </div>
+                  <button class="btn btn-small btn-add" id="add-mega-gem-btn">Add</button>
+                </div>
               </div>
             </div>
 

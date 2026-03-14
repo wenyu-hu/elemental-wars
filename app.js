@@ -110,12 +110,13 @@ function defaultProfile() {
     defence: { name: "", rarity: "", exclusiveNum: "", defenceLevel: null, currentDurability: null, maxDurability: null, enchantments: [] },
     rangedWeapon: { name: "", rarity: "", exclusiveNum: "", projectileSpeed: null, specialities: "", reload: null, enchantments: [] },
     armour: { name: "", rarity: "", exclusiveNum: "", defenceLevel: null, specialities: "", enchantments: [] },
-    artifact: { name: "", rarity: "", exclusiveNum: "", level: null, duration: null, reload: null, effect: null, enchantments: [] },
-    transportation: { name: "", rarity: "", exclusiveNum: "", currentHP: null, maxHP: null, weapons: null, enchantments: [] },
+    artifact: { name: "", rarity: "", exclusiveNum: "", level: null, duration: null, reload: null, effect: "", enchantments: [] },
+    transportation: { name: "", rarity: "", exclusiveNum: "", currentHP: null, maxHP: null, weapons: [], enchantments: [] },
     pets: [],
     extensions: [],
-    accessories: { necklace: "", bracelet: "", ring: "" },
+    accessories: { necklace: "", necklaceEffect: "", bracelet: "", braceletEffect: "", ring: "", ringEffect: "" },
     gems: [],
+    megaGems: [],
     arrows: [],
     spells: [],
     inventory: new Array(32).fill(""),
@@ -310,10 +311,17 @@ async function loadSheet(username, editable) {
       const val = catData[field];
       if (el.tagName === "SELECT") {
         el.value = val || "";
+      } else if (el.tagName === "TEXTAREA") {
+        el.value = val || "";
       } else {
         el.value = val != null ? val : "";
       }
     });
+
+    // Render transportation weapons list
+    if (cat === "transportation") {
+      renderTransportWeapons(catData.weapons || []);
+    }
 
     // Show/hide exclusive number
     const exclSelect = card.querySelector(".exclusive-num");
@@ -330,8 +338,9 @@ async function loadSheet(username, editable) {
   // Lists
   renderPets(data.pets || []);
   renderExtensions(data.extensions || []);
-  renderAccessories(data.accessories || { necklace: "", bracelet: "", ring: "" });
+  renderAccessories(data.accessories || { necklace: "", necklaceEffect: "", bracelet: "", braceletEffect: "", ring: "", ringEffect: "" });
   renderGems(data.gems || []);
+  renderMegaGems(data.megaGems || []);
   renderArrows(data.arrows || []);
   renderSpells(data.spells || []);
 
@@ -399,7 +408,7 @@ document.getElementById("hp-max").addEventListener("change", function () {
 });
 
 // Fields that remain as text (not integer)
-const TEXT_STAT_FIELDS = new Set(["name", "rarity", "exclusiveNum", "specialities", "enchantments"]);
+const TEXT_STAT_FIELDS = new Set(["name", "rarity", "exclusiveNum", "specialities", "enchantments", "effect"]);
 
 // Equipment cards - auto-save on change/blur
 document.querySelectorAll(".equip-card").forEach(card => {
@@ -408,6 +417,7 @@ document.querySelectorAll(".equip-card").forEach(card => {
   card.querySelectorAll(".equip-stats [data-field], .equip-header [data-field]").forEach(el => {
     const field = el.dataset.field;
     if (field === "enchantments") return; // handled by list logic
+    if (field === "weapons" && cat === "transportation") return; // handled by list logic
     const event = el.tagName === "SELECT" ? "change" : "blur";
 
     el.addEventListener(event, () => {
@@ -526,13 +536,16 @@ async function removeExtension(index) {
 // --- Accessories (inline save via blur, already handled above) ---
 function renderAccessories(acc) {
   document.getElementById("acc-necklace").value = acc.necklace || "";
+  document.getElementById("acc-necklace-effect").value = acc.necklaceEffect || "";
   document.getElementById("acc-bracelet").value = acc.bracelet || "";
+  document.getElementById("acc-bracelet-effect").value = acc.braceletEffect || "";
   document.getElementById("acc-ring").value = acc.ring || "";
+  document.getElementById("acc-ring-effect").value = acc.ringEffect || "";
 }
 
 // --- Gems ---
 function renderGems(gems) {
-  const container = document.getElementById("gems-list");
+  const container = document.getElementById("gems-normal-list");
   container.innerHTML = "";
   gems.forEach((name, i) => {
     const div = document.createElement("div");
@@ -816,6 +829,134 @@ async function removeEnchantment(card, category, index) {
   enchantments.splice(index, 1);
   await db.collection("users").doc(currentUser).update({ [`${category}.enchantments`]: enchantments });
   renderEnchantments(card, category, enchantments);
+}
+
+// ============================================
+// TRANSPORTATION WEAPONS LIST
+// ============================================
+function renderTransportWeapons(weapons) {
+  const container = document.getElementById("transport-weapons-list");
+  container.innerHTML = "";
+  // Handle legacy number format
+  if (typeof weapons === "number" || !Array.isArray(weapons)) {
+    weapons = [];
+  }
+  weapons.forEach((w, i) => {
+    const div = document.createElement("div");
+    div.className = "list-item";
+    div.innerHTML = `<div class="list-item-info"><span>${escapeHtml(w.name)}</span><span class="list-item-sub">Ammo: ${w.ammo}</span></div><button class="btn-remove" data-index="${i}">&times;</button>`;
+    div.querySelector(".btn-remove").addEventListener("click", () => removeTransportWeapon(i));
+    container.appendChild(div);
+  });
+}
+
+document.querySelector(".transport-weapon-add-btn").addEventListener("click", async () => {
+  if (!currentUser || viewingUser) return;
+  const card = document.querySelector('.equip-card[data-category="transportation"]');
+  const nameInput = card.querySelector(".transport-weapon-name-input");
+  const ammoInput = card.querySelector(".transport-weapon-ammo-input");
+  const name = nameInput.value.trim();
+  const ammo = parseInt(ammoInput.value, 10);
+  if (!name || isNaN(ammo) || ammo < 0) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const catData = doc.data().transportation || {};
+  let weapons = catData.weapons || [];
+  if (!Array.isArray(weapons)) weapons = [];
+  weapons.push({ name, ammo });
+  await db.collection("users").doc(currentUser).update({ "transportation.weapons": weapons });
+  nameInput.value = "";
+  ammoInput.value = "";
+  renderTransportWeapons(weapons);
+});
+
+async function removeTransportWeapon(index) {
+  if (!currentUser || viewingUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const catData = doc.data().transportation || {};
+  let weapons = catData.weapons || [];
+  if (!Array.isArray(weapons)) weapons = [];
+  weapons.splice(index, 1);
+  await db.collection("users").doc(currentUser).update({ "transportation.weapons": weapons });
+  renderTransportWeapons(weapons);
+}
+
+// ============================================
+// MEGA GEMS
+// ============================================
+const MEGA_GEM_COLORS = {
+  "Black Mega Gem": "#333",
+  "Blue Mega Gem": "#4488ff",
+  "Yellow Mega Gem": "#ffcc00",
+  "Purple Mega Gem": "#aa66dd"
+};
+
+const MEGA_OUTLINE_COLORS = {
+  "Red": "#e84057",
+  "Light blue": "#66ccff",
+  "Green": "#44cc66",
+  "Yellow": "#ffcc00"
+};
+
+function renderMegaGems(megaGems) {
+  const container = document.getElementById("gems-mega-list");
+  container.innerHTML = "";
+  megaGems.forEach((mg, i) => {
+    const div = document.createElement("div");
+    div.className = "list-item";
+    const gemColor = MEGA_GEM_COLORS[mg.type] || "#666";
+    const primeText = mg.prime ? ` (Prime - ${mg.outline} outline)` : "";
+    const outlineStyle = mg.prime && mg.outline ? `border: 2px solid ${MEGA_OUTLINE_COLORS[mg.outline] || '#fff'}; border-radius: 4px; padding: 2px 4px;` : "";
+    div.innerHTML = `<div class="list-item-info" style="${outlineStyle}"><span style="color:${gemColor}">${escapeHtml(mg.type)}</span><span class="list-item-sub">&times;${mg.quantity}${escapeHtml(primeText)}</span></div><button class="btn-remove" data-index="${i}">&times;</button>`;
+    div.querySelector(".btn-remove").addEventListener("click", () => removeMegaGem(i));
+    container.appendChild(div);
+  });
+}
+
+// Prime checkbox toggle
+document.getElementById("mega-gem-prime-input").addEventListener("change", function () {
+  const outlineSelect = document.getElementById("mega-gem-outline-input");
+  if (this.checked) {
+    outlineSelect.classList.remove("hidden");
+  } else {
+    outlineSelect.classList.add("hidden");
+    outlineSelect.value = "";
+  }
+});
+
+document.getElementById("add-mega-gem-btn").addEventListener("click", async () => {
+  if (!currentUser || viewingUser) return;
+  const typeInput = document.getElementById("mega-gem-type-input");
+  const qtyInput = document.getElementById("mega-gem-qty-input");
+  const primeInput = document.getElementById("mega-gem-prime-input");
+  const outlineInput = document.getElementById("mega-gem-outline-input");
+
+  const type = typeInput.value;
+  const quantity = parseInt(qtyInput.value, 10);
+  const prime = primeInput.checked;
+  const outline = outlineInput.value;
+
+  if (!type || isNaN(quantity) || quantity < 1) return;
+  if (prime && !outline) return; // Must pick outline if prime
+
+  const doc = await db.collection("users").doc(currentUser).get();
+  const megaGems = doc.data().megaGems || [];
+  megaGems.push({ type, quantity, prime, outline: prime ? outline : "" });
+  await db.collection("users").doc(currentUser).update({ megaGems });
+  typeInput.value = "";
+  qtyInput.value = "";
+  primeInput.checked = false;
+  outlineInput.classList.add("hidden");
+  outlineInput.value = "";
+  renderMegaGems(megaGems);
+});
+
+async function removeMegaGem(index) {
+  if (!currentUser || viewingUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const megaGems = doc.data().megaGems || [];
+  megaGems.splice(index, 1);
+  await db.collection("users").doc(currentUser).update({ megaGems });
+  renderMegaGems(megaGems);
 }
 
 // --- Utility ---

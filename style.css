@@ -758,6 +758,99 @@ input[type="number"] { -moz-appearance: textfield; }
   border-color: var(--border);
 }
 
+/* Specialities textarea */
+.specialities-textarea {
+  width: 100%;
+  min-height: 48px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  padding: 3px 6px;
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.specialities-textarea:focus {
+  background: var(--bg-input);
+  border-color: var(--border);
+}
+
+.stat-row-wide {
+  flex-wrap: wrap;
+}
+
+.stat-row-wide .specialities-textarea {
+  flex: 1;
+  min-width: 100px;
+}
+
+/* Accessory effect input */
+.acc-effect-input {
+  flex: 1;
+  max-width: 120px;
+  font-size: 0.8rem !important;
+}
+
+/* Weapons list in transportation */
+.weapons-list-section {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.weapons-list-section .enchant-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Gem subcategories */
+.gem-subcategory {
+  margin-bottom: 12px;
+}
+
+.gem-sub-title {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.mega-gem-add {
+  flex-wrap: wrap;
+}
+
+.mega-gem-prime-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.prime-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.prime-toggle-label input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.mega-gem-outline {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
 /* ============ INVENTORY ============ */
 .inventory-section {
   background: var(--bg-card);
