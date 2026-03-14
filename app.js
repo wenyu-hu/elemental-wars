@@ -1422,10 +1422,8 @@ let editingNewsId = null;
 let pendingDeleteId = null;
 let newsImageFile = null;
 
-async function checkAdmin() {
-  if (!currentUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
-  isAdmin = !!(doc.exists && doc.data().isAdmin === true);
+function checkAdmin() {
+  isAdmin = currentUser === "Wenyu";
   document.getElementById("add-news-btn").classList.toggle("hidden", !isAdmin);
 }
 
