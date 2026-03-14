@@ -106,12 +106,12 @@ function defaultProfile() {
     boosterPoints: null,
     currentHP: 100,
     maxHP: 100,
-    meleeWeapon: { name: "", rarity: "", exclusiveNum: "", damage: "", attackSpeed: "", range: "", specialities: "", enchantments: "" },
-    defence: { name: "", rarity: "", exclusiveNum: "", defenceLevel: "", durability: "", enchantments: "" },
-    rangedWeapon: { name: "", rarity: "", exclusiveNum: "", projectileSpeed: "", specialities: "", reload: "", enchantments: "" },
-    armour: { name: "", rarity: "", exclusiveNum: "", defenceLevel: "", specialities: "", enchantments: "" },
-    artifact: { name: "", rarity: "", exclusiveNum: "", level: "", duration: "", reload: "", effect: "", enchantments: "" },
-    transportation: { name: "", rarity: "", exclusiveNum: "", currentHP: "", maxHP: "", weapons: "", enchantments: "" },
+    meleeWeapon: { name: "", rarity: "", exclusiveNum: "", damage: null, attackSpeed: null, range: null, specialities: "", enchantments: [] },
+    defence: { name: "", rarity: "", exclusiveNum: "", defenceLevel: null, durability: null, enchantments: [] },
+    rangedWeapon: { name: "", rarity: "", exclusiveNum: "", projectileSpeed: null, specialities: "", reload: null, enchantments: [] },
+    armour: { name: "", rarity: "", exclusiveNum: "", defenceLevel: null, specialities: "", enchantments: [] },
+    artifact: { name: "", rarity: "", exclusiveNum: "", level: null, duration: null, reload: null, effect: null, enchantments: [] },
+    transportation: { name: "", rarity: "", exclusiveNum: "", currentHP: null, maxHP: null, weapons: null, enchantments: [] },
     pets: [],
     extensions: [],
     accessories: { necklace: "", bracelet: "", ring: "" },
@@ -306,13 +306,12 @@ async function loadSheet(username, editable) {
 
     card.querySelectorAll("[data-field]").forEach(el => {
       const field = el.dataset.field;
-      const val = catData[field] || "";
+      if (field === "enchantments") return; // handled separately
+      const val = catData[field];
       if (el.tagName === "SELECT") {
-        el.value = val;
-      } else if (el.tagName === "TEXTAREA") {
-        el.value = val;
+        el.value = val || "";
       } else {
-        el.value = val;
+        el.value = val != null ? val : "";
       }
     });
 
@@ -323,6 +322,9 @@ async function loadSheet(username, editable) {
     } else {
       exclSelect.classList.add("hidden");
     }
+
+    // Render enchantments list
+    renderEnchantments(card, cat, catData.enchantments || []);
   });
 
   // Lists
@@ -396,17 +398,30 @@ document.getElementById("hp-max").addEventListener("change", function () {
   }
 });
 
+// Fields that remain as text (not integer)
+const TEXT_STAT_FIELDS = new Set(["name", "rarity", "exclusiveNum", "specialities", "enchantments"]);
+
 // Equipment cards - auto-save on change/blur
 document.querySelectorAll(".equip-card").forEach(card => {
   const cat = card.dataset.category;
 
-  card.querySelectorAll("[data-field]").forEach(el => {
+  card.querySelectorAll(".equip-stats [data-field], .equip-header [data-field]").forEach(el => {
     const field = el.dataset.field;
+    if (field === "enchantments") return; // handled by list logic
     const event = el.tagName === "SELECT" ? "change" : "blur";
 
     el.addEventListener(event, () => {
       if (!currentUser || viewingUser) return;
-      saveNestedField(cat, field, el.value);
+
+      let value;
+      if (TEXT_STAT_FIELDS.has(field)) {
+        value = el.value;
+      } else {
+        // Integer field
+        value = el.value === "" ? null : parseInt(el.value, 10);
+        if (isNaN(value)) value = null;
+      }
+      saveNestedField(cat, field, value);
 
       // Handle rarity change
       if (field === "rarity") {
@@ -753,6 +768,55 @@ document.getElementById("back-to-own").addEventListener("click", () => {
     li.classList.toggle("active", li.textContent.includes(currentUser));
   });
 });
+
+// ============================================
+// ENCHANTMENTS
+// ============================================
+function renderEnchantments(card, category, enchantments) {
+  const container = card.querySelector(".enchant-list");
+  container.innerHTML = "";
+  enchantments.forEach((ench, i) => {
+    const div = document.createElement("div");
+    div.className = "list-item";
+    div.innerHTML = `<div class="list-item-info"><span>${escapeHtml(ench.name)}</span><span class="list-item-sub">${escapeHtml(ench.level)}</span></div><button class="btn-remove" data-index="${i}">&times;</button>`;
+    div.querySelector(".btn-remove").addEventListener("click", () => removeEnchantment(card, category, i));
+    container.appendChild(div);
+  });
+}
+
+// Set up enchantment add buttons for all equipment cards
+document.querySelectorAll(".equip-card").forEach(card => {
+  const cat = card.dataset.category;
+  const addBtn = card.querySelector(".enchant-add-btn");
+  if (!addBtn) return;
+
+  addBtn.addEventListener("click", async () => {
+    if (!currentUser || viewingUser) return;
+    const nameInput = card.querySelector(".enchant-name-input");
+    const levelInput = card.querySelector(".enchant-level-input");
+    const name = nameInput.value.trim();
+    const level = levelInput.value;
+    if (!name || !level) return;
+    const doc = await db.collection("users").doc(currentUser).get();
+    const catData = doc.data()[cat] || {};
+    const enchantments = catData.enchantments || [];
+    enchantments.push({ name, level });
+    await db.collection("users").doc(currentUser).update({ [`${cat}.enchantments`]: enchantments });
+    nameInput.value = "";
+    levelInput.value = "";
+    renderEnchantments(card, cat, enchantments);
+  });
+});
+
+async function removeEnchantment(card, category, index) {
+  if (!currentUser || viewingUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const catData = doc.data()[category] || {};
+  const enchantments = catData.enchantments || [];
+  enchantments.splice(index, 1);
+  await db.collection("users").doc(currentUser).update({ [`${category}.enchantments`]: enchantments });
+  renderEnchantments(card, category, enchantments);
+}
 
 // --- Utility ---
 function escapeHtml(str) {

@@ -122,14 +122,23 @@
                 </select>
               </div>
               <div class="equip-stats">
-                <div class="stat-row"><label>Damage</label><input type="text" data-field="damage" placeholder="—"></div>
-                <div class="stat-row"><label>Attack Speed</label><input type="text" data-field="attackSpeed" placeholder="—"></div>
-                <div class="stat-row"><label>Range</label><input type="text" data-field="range" placeholder="—"></div>
+                <div class="stat-row"><label>Damage</label><input type="number" data-field="damage" placeholder="—" min="0"></div>
+                <div class="stat-row"><label>Attack Speed</label><input type="number" data-field="attackSpeed" placeholder="—" min="0"></div>
+                <div class="stat-row"><label>Range</label><input type="number" data-field="range" placeholder="—" min="0"></div>
                 <div class="stat-row"><label>Specialities</label><input type="text" data-field="specialities" placeholder="—"></div>
               </div>
               <div class="enchantments-section">
                 <label class="enchant-label">Enchantments</label>
-                <textarea data-field="enchantments" placeholder="None"></textarea>
+                <div class="enchant-list"></div>
+                <div class="enchant-add">
+                  <input type="text" placeholder="Enchantment name" class="list-input enchant-name-input">
+                  <select class="list-input list-input-small enchant-level-input">
+                    <option value="">Lv</option>
+                    <option value="I">I</option><option value="II">II</option><option value="III">III</option>
+                    <option value="IV">IV</option><option value="V">V</option>
+                  </select>
+                  <button class="btn btn-small btn-add enchant-add-btn">Add</button>
+                </div>
               </div>
             </div>
 
@@ -151,12 +160,21 @@
                 </select>
               </div>
               <div class="equip-stats">
-                <div class="stat-row"><label>Defence Level</label><input type="text" data-field="defenceLevel" placeholder="—"></div>
-                <div class="stat-row"><label>Durability</label><input type="text" data-field="durability" placeholder="—"></div>
+                <div class="stat-row"><label>Defence Level</label><input type="number" data-field="defenceLevel" placeholder="—" min="0"></div>
+                <div class="stat-row"><label>Durability</label><input type="number" data-field="durability" placeholder="—" min="0"></div>
               </div>
               <div class="enchantments-section">
                 <label class="enchant-label">Enchantments</label>
-                <textarea data-field="enchantments" placeholder="None"></textarea>
+                <div class="enchant-list"></div>
+                <div class="enchant-add">
+                  <input type="text" placeholder="Enchantment name" class="list-input enchant-name-input">
+                  <select class="list-input list-input-small enchant-level-input">
+                    <option value="">Lv</option>
+                    <option value="I">I</option><option value="II">II</option><option value="III">III</option>
+                    <option value="IV">IV</option><option value="V">V</option>
+                  </select>
+                  <button class="btn btn-small btn-add enchant-add-btn">Add</button>
+                </div>
               </div>
             </div>
 
@@ -178,13 +196,22 @@
                 </select>
               </div>
               <div class="equip-stats">
-                <div class="stat-row"><label>Projectile Speed</label><input type="text" data-field="projectileSpeed" placeholder="—"></div>
+                <div class="stat-row"><label>Projectile Speed</label><input type="number" data-field="projectileSpeed" placeholder="—" min="0"></div>
                 <div class="stat-row"><label>Specialities</label><input type="text" data-field="specialities" placeholder="—"></div>
-                <div class="stat-row"><label>Reload</label><input type="text" data-field="reload" placeholder="—"></div>
+                <div class="stat-row"><label>Reload</label><input type="number" data-field="reload" placeholder="—" min="0"></div>
               </div>
               <div class="enchantments-section">
                 <label class="enchant-label">Enchantments</label>
-                <textarea data-field="enchantments" placeholder="None"></textarea>
+                <div class="enchant-list"></div>
+                <div class="enchant-add">
+                  <input type="text" placeholder="Enchantment name" class="list-input enchant-name-input">
+                  <select class="list-input list-input-small enchant-level-input">
+                    <option value="">Lv</option>
+                    <option value="I">I</option><option value="II">II</option><option value="III">III</option>
+                    <option value="IV">IV</option><option value="V">V</option>
+                  </select>
+                  <button class="btn btn-small btn-add enchant-add-btn">Add</button>
+                </div>
               </div>
             </div>
 
@@ -206,12 +233,21 @@
                 </select>
               </div>
               <div class="equip-stats">
-                <div class="stat-row"><label>Defence Level</label><input type="text" data-field="defenceLevel" placeholder="—"></div>
+                <div class="stat-row"><label>Defence Level</label><input type="number" data-field="defenceLevel" placeholder="—" min="0"></div>
                 <div class="stat-row"><label>Specialities</label><input type="text" data-field="specialities" placeholder="—"></div>
               </div>
               <div class="enchantments-section">
                 <label class="enchant-label">Enchantments</label>
-                <textarea data-field="enchantments" placeholder="None"></textarea>
+                <div class="enchant-list"></div>
+                <div class="enchant-add">
+                  <input type="text" placeholder="Enchantment name" class="list-input enchant-name-input">
+                  <select class="list-input list-input-small enchant-level-input">
+                    <option value="">Lv</option>
+                    <option value="I">I</option><option value="II">II</option><option value="III">III</option>
+                    <option value="IV">IV</option><option value="V">V</option>
+                  </select>
+                  <button class="btn btn-small btn-add enchant-add-btn">Add</button>
+                </div>
               </div>
             </div>
 
@@ -233,14 +269,23 @@
                 </select>
               </div>
               <div class="equip-stats">
-                <div class="stat-row"><label>Level</label><input type="text" data-field="level" placeholder="—"></div>
-                <div class="stat-row"><label>Duration</label><input type="text" data-field="duration" placeholder="—"></div>
-                <div class="stat-row"><label>Reload</label><input type="text" data-field="reload" placeholder="—"></div>
-                <div class="stat-row"><label>Effect</label><input type="text" data-field="effect" placeholder="—"></div>
+                <div class="stat-row"><label>Level</label><input type="number" data-field="level" placeholder="—" min="0"></div>
+                <div class="stat-row"><label>Duration</label><input type="number" data-field="duration" placeholder="—" min="0"></div>
+                <div class="stat-row"><label>Reload</label><input type="number" data-field="reload" placeholder="—" min="0"></div>
+                <div class="stat-row"><label>Effect</label><input type="number" data-field="effect" placeholder="—" min="0"></div>
               </div>
               <div class="enchantments-section">
                 <label class="enchant-label">Enchantments</label>
-                <textarea data-field="enchantments" placeholder="None"></textarea>
+                <div class="enchant-list"></div>
+                <div class="enchant-add">
+                  <input type="text" placeholder="Enchantment name" class="list-input enchant-name-input">
+                  <select class="list-input list-input-small enchant-level-input">
+                    <option value="">Lv</option>
+                    <option value="I">I</option><option value="II">II</option><option value="III">III</option>
+                    <option value="IV">IV</option><option value="V">V</option>
+                  </select>
+                  <button class="btn btn-small btn-add enchant-add-btn">Add</button>
+                </div>
               </div>
             </div>
 
@@ -271,11 +316,20 @@
                     <span>HP</span>
                   </div>
                 </div>
-                <div class="stat-row"><label>Weapons</label><input type="text" data-field="weapons" placeholder="—"></div>
+                <div class="stat-row"><label>Weapons</label><input type="number" data-field="weapons" placeholder="—" min="0"></div>
               </div>
               <div class="enchantments-section">
                 <label class="enchant-label">Enchantments</label>
-                <textarea data-field="enchantments" placeholder="None"></textarea>
+                <div class="enchant-list"></div>
+                <div class="enchant-add">
+                  <input type="text" placeholder="Enchantment name" class="list-input enchant-name-input">
+                  <select class="list-input list-input-small enchant-level-input">
+                    <option value="">Lv</option>
+                    <option value="I">I</option><option value="II">II</option><option value="III">III</option>
+                    <option value="IV">IV</option><option value="V">V</option>
+                  </select>
+                  <button class="btn btn-small btn-add enchant-add-btn">Add</button>
+                </div>
               </div>
             </div>
           </section>

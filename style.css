@@ -596,9 +596,24 @@ input[type="number"] { -moz-appearance: textfield; }
   font-family: inherit;
 }
 
-.enchantments-section textarea:focus {
-  background: var(--bg-input);
-  border-color: var(--border);
+.enchant-list {
+  margin-bottom: 6px;
+}
+
+.enchant-add {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.enchant-add .list-input {
+  font-size: 0.75rem;
+  padding: 4px 6px;
+}
+
+.enchant-add .btn-add {
+  font-size: 0.75rem;
+  padding: 4px 10px;
 }
 
 /* Rarity colored borders */
@@ -866,6 +881,7 @@ input[type="number"] { -moz-appearance: textfield; }
 .read-only .btn-add,
 .read-only .btn-remove,
 .read-only .list-add,
+.read-only .enchant-add,
 .read-only #ability-add-area {
   display: none !important;
 }
