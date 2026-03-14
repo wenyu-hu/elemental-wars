@@ -69,6 +69,14 @@ const EMOJI_MAP = {
 };
 const FALLBACK_EMOJI = "\u{1F4E6}";
 
+// Extract individual emoji characters from a string
+function extractEmojis(str) {
+  if (!str) return [];
+  const regex = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu;
+  const matches = str.match(regex);
+  return matches || [];
+}
+
 function getItemEmoji(text) {
   const lower = text.toLowerCase().replace(/[^a-z\s]/g, "");
   const words = lower.split(/\s+/);
@@ -731,10 +739,60 @@ const EMOJI_SEARCH_LIST = [];
 
 let selectedEmoji = null;
 
+// Sorting helpers for inventory
+const TYPE_ORDER = ["meleeWeapon", "defence", "rangedWeapon", "armour", "artifact", "transportation", "food"];
+const RARITY_ORDER = ["common", "uncommon", "rare", "epicRare", "ultraRare", "legendary", "mythical", "elder", "exclusive"];
+
+function getSortedInventoryIndices(inventory, filterMode) {
+  // Build array of {index, item} for non-empty slots
+  const items = [];
+  const empties = [];
+  for (let i = 0; i < 32; i++) {
+    const item = inventory[i];
+    if (item && typeof item === "object" && item.name) {
+      items.push({ index: i, item });
+    } else {
+      empties.push(i);
+    }
+  }
+
+  if (filterMode === "alphabetical") {
+    items.sort((a, b) => (a.item.name || "").localeCompare(b.item.name || ""));
+  } else if (filterMode === "type") {
+    items.sort((a, b) => {
+      const typeA = TYPE_ORDER.indexOf(a.item.type || "");
+      const typeB = TYPE_ORDER.indexOf(b.item.type || "");
+      if (typeA !== typeB) return typeA - typeB;
+      // Within artifact: sort by level descending
+      if (a.item.type === "artifact") {
+        return (b.item.artifactLevel || 0) - (a.item.artifactLevel || 0);
+      }
+      return (a.item.name || "").localeCompare(b.item.name || "");
+    });
+  } else if (filterMode === "rarity") {
+    items.sort((a, b) => {
+      const rarA = a.item.type === "food" ? -1 : RARITY_ORDER.indexOf(a.item.rarity || "");
+      const rarB = b.item.type === "food" ? -1 : RARITY_ORDER.indexOf(b.item.rarity || "");
+      if (rarA !== rarB) return rarA - rarB;
+      // Within exclusive: sort by power descending
+      if (a.item.rarity === "exclusive" && b.item.rarity === "exclusive") {
+        return (b.item.exclusivePower || 0) - (a.item.exclusivePower || 0);
+      }
+      return (a.item.name || "").localeCompare(b.item.name || "");
+    });
+  }
+
+  // Return sorted item indices followed by empty indices
+  return [...items.map(x => x.index), ...empties];
+}
+
 function renderInventory(inventory) {
   const grid = document.getElementById("inventory-grid");
   grid.innerHTML = "";
-  for (let i = 0; i < 32; i++) {
+  const filterMode = document.getElementById("inventory-filter")?.value || "alphabetical";
+  const sortedIndices = getSortedInventoryIndices(inventory, filterMode);
+
+  for (const i of sortedIndices) {
     const cell = document.createElement("div");
     cell.className = "inv-cell";
     cell.dataset.index = i;
@@ -750,10 +808,12 @@ function renderInventory(inventory) {
       }
 
       if (item.emoji) {
-        // Has emoji: show emoji + name below
+        // Has emoji(s): show up to 3 emojis + name below
+        const emojis = extractEmojis(item.emoji);
         const emojiSpan = document.createElement("span");
         emojiSpan.className = "inv-emoji";
-        emojiSpan.textContent = item.emoji;
+        emojiSpan.textContent = emojis.join("");
+        if (emojis.length > 1) emojiSpan.style.fontSize = emojis.length === 3 ? "0.9rem" : "1.1rem";
         cell.appendChild(emojiSpan);
         if (item.name) {
           const nameSpan = document.createElement("span");
@@ -868,7 +928,13 @@ function openInventoryModal(index, currentItem) {
     }
     if (currentItem.emoji) {
       selectedEmoji = currentItem.emoji;
-      emojiSelected.innerHTML = `<span class="selected-emoji-display">${currentItem.emoji}</span> Selected`;
+      const emojiList = extractEmojis(currentItem.emoji);
+      emojiSelected.innerHTML = `<span class="selected-emoji-display">${emojiList.join(" ")}</span> ${emojiList.length}/3 selected` +
+        ` <span class="emoji-clear-btn" style="cursor:pointer;color:var(--danger);margin-left:8px;">Clear</span>`;
+      emojiSelected.querySelector(".emoji-clear-btn").addEventListener("click", () => {
+        selectedEmoji = null;
+        emojiSelected.innerHTML = "";
+      });
     }
   }
 
@@ -916,6 +982,16 @@ document.getElementById("inv-type-input").addEventListener("change", updateInven
 // Rarity change
 document.getElementById("inv-rarity-input").addEventListener("change", updateInventoryConditionalRows);
 
+// Inventory filter change — re-render with current data
+document.getElementById("inventory-filter").addEventListener("change", async () => {
+  const username = viewingUser || currentUser;
+  if (!username) return;
+  const doc = await db.collection("users").doc(username).get();
+  if (doc.exists) {
+    renderInventory(doc.data().inventory || new Array(32).fill(""));
+  }
+});
+
 // Emoji search/picker
 document.getElementById("inv-emoji-search").addEventListener("input", (e) => {
   const query = e.target.value.trim().toLowerCase();
@@ -945,9 +1021,22 @@ document.getElementById("inv-emoji-search").addEventListener("input", (e) => {
     btn.textContent = item.emoji;
     btn.title = item.keyword;
     btn.addEventListener("click", () => {
-      selectedEmoji = item.emoji;
+      // Multi-emoji: add to selectedEmoji string (up to 3)
+      const currentEmojis = extractEmojis(selectedEmoji || "");
+      if (currentEmojis.length < 3) {
+        selectedEmoji = (selectedEmoji || "") + item.emoji;
+      } else {
+        // Replace last emoji
+        selectedEmoji = currentEmojis.slice(0, 2).join("") + item.emoji;
+      }
+      const emojiList = extractEmojis(selectedEmoji);
       document.getElementById("emoji-selected").innerHTML =
-        `<span class="selected-emoji-display">${item.emoji}</span> ${item.keyword}`;
+        `<span class="selected-emoji-display">${emojiList.join(" ")}</span> ${emojiList.length}/3 selected` +
+        ` <span class="emoji-clear-btn" style="cursor:pointer;color:var(--danger);margin-left:8px;">Clear</span>`;
+      document.getElementById("emoji-selected").querySelector(".emoji-clear-btn").addEventListener("click", () => {
+        selectedEmoji = null;
+        document.getElementById("emoji-selected").innerHTML = "";
+      });
       // Update selection visual
       results.querySelectorAll(".emoji-option").forEach((el) => el.classList.remove("selected"));
       btn.classList.add("selected");
@@ -956,18 +1045,21 @@ document.getElementById("inv-emoji-search").addEventListener("input", (e) => {
   });
 });
 
-// Paste emoji input — user can paste/type any emoji directly
+// Paste emoji input — user can paste/type up to 3 emojis directly
 document.getElementById("inv-emoji-paste").addEventListener("input", (e) => {
   const val = e.target.value.trim();
   if (val) {
-    // Extract just the first emoji character(s)
-    const emojiRegex = /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u;
-    const match = val.match(emojiRegex);
-    if (match) {
-      selectedEmoji = match[0];
+    const emojis = extractEmojis(val).slice(0, 3);
+    if (emojis.length > 0) {
+      selectedEmoji = emojis.join("");
       document.getElementById("emoji-selected").innerHTML =
-        `<span class="selected-emoji-display">${match[0]}</span> Custom emoji`;
-      // Clear search results since user is pasting directly
+        `<span class="selected-emoji-display">${emojis.join(" ")}</span> ${emojis.length}/3 custom` +
+        ` <span class="emoji-clear-btn" style="cursor:pointer;color:var(--danger);margin-left:8px;">Clear</span>`;
+      document.getElementById("emoji-selected").querySelector(".emoji-clear-btn").addEventListener("click", () => {
+        selectedEmoji = null;
+        document.getElementById("emoji-selected").innerHTML = "";
+        e.target.value = "";
+      });
       document.getElementById("inv-emoji-search").value = "";
       document.getElementById("emoji-results").innerHTML = "";
     }
