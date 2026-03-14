@@ -1,7 +1,6 @@
 // ============================================
 // FIREBASE CONFIGURATION
 // ============================================
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAot_QCduDwR05B1Ob395n0_BxufPZQgto",
   authDomain: "elemental-wars-d998b.firebaseapp.com",
@@ -11,3 +10,7 @@ const firebaseConfig = {
   appId: "1:1031739683039:web:7d4099f574ddf4688bf96a",
   measurementId: "G-J963TL0NT1"
 };
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const storage = firebase.storage();

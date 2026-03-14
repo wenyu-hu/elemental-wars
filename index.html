@@ -12,7 +12,7 @@
   <div id="auth-screen" class="screen active">
     <div class="auth-container">
       <h1 class="game-title">Elemental Wars</h1>
-      <p class="subtitle">Stat Tracker <span class="version-tag">v1.2.1</span></p>
+      <p class="subtitle">Stat Tracker <span class="version-tag">v1.3</span></p>
       <div class="auth-box">
         <div class="auth-tabs">
           <button class="auth-tab active" data-tab="login">Log In</button>
@@ -37,7 +37,7 @@
   <!-- ==================== DASHBOARD ==================== -->
   <div id="dashboard-screen" class="screen">
     <header class="top-bar">
-      <h2 class="logo">Elemental Wars <span class="version-tag">v1.2.1</span></h2>
+      <h2 class="logo">Elemental Wars <span class="version-tag">v1.3</span></h2>
       <div class="top-bar-right">
         <span id="current-user-display"></span>
         <button id="logout-btn" class="btn btn-small">Log Out</button>
@@ -52,8 +52,16 @@
         <ul id="user-list"></ul>
       </aside>
 
-      <!-- Main: Status Sheet -->
+      <!-- Main Content -->
       <main class="sheet-area">
+        <!-- Tab Navigation -->
+        <nav class="main-tab-nav">
+          <button class="main-tab-btn active" data-tab="sheet">&#x1F4CB; Status Sheet</button>
+          <button class="main-tab-btn" data-tab="news">&#x1F4F0; News</button>
+        </nav>
+
+        <!-- Status Sheet Tab -->
+        <div id="main-tab-sheet" class="main-tab-content">
         <div id="viewing-banner" class="viewing-banner hidden">
           Viewing <span id="viewing-username"></span>'s sheet (read-only)
           <button id="back-to-own" class="btn btn-small">Back to My Sheet</button>
@@ -496,6 +504,17 @@
           </section>
 
         </div><!-- end status-sheet -->
+        </div><!-- end main-tab-sheet -->
+
+        <!-- News Tab -->
+        <div id="main-tab-news" class="main-tab-content hidden">
+          <div class="news-header">
+            <h2 class="news-title">&#x1F4F0; News</h2>
+            <button id="add-news-btn" class="btn btn-primary hidden">+ New Post</button>
+          </div>
+          <div id="news-feed"></div>
+        </div>
+
       </main>
     </div>
   </div>
@@ -579,9 +598,46 @@
     </div>
   </div>
 
+  <!-- News Post Modal -->
+  <div id="news-modal" class="modal hidden">
+    <div class="modal-content modal-content-wide">
+      <h3 id="news-modal-title">New Post</h3>
+      <div class="inv-modal-row">
+        <label>Title</label>
+        <input type="text" id="news-post-title" placeholder="Post title" autocomplete="off">
+      </div>
+      <div class="inv-modal-row">
+        <label>Image (optional)</label>
+        <input type="file" id="news-post-image" accept="image/*">
+        <div id="news-image-preview"></div>
+      </div>
+      <div class="inv-modal-row">
+        <label>Description</label>
+        <textarea id="news-post-desc" placeholder="Write your update here..." rows="6"></textarea>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn btn-small" id="news-modal-cancel">Cancel</button>
+        <button class="btn btn-primary btn-small" id="news-modal-save">Post</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div id="news-delete-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Delete Post?</h3>
+      <p style="color:var(--text-secondary);margin-bottom:16px;">This cannot be undone.</p>
+      <div class="modal-buttons">
+        <button class="btn btn-small" id="news-delete-cancel">Cancel</button>
+        <button class="btn btn-small btn-danger" id="news-delete-confirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="firebase-config.js"></script>
   <script src="app.js"></script>
 </body>

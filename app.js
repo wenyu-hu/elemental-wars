@@ -2,10 +2,6 @@
    ELEMENTAL WARS - APP LOGIC
    ============================================ */
 
-// --- Firebase Init ---
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
 // --- State ---
 let currentUser = null;   // logged-in username
 let viewingUser = null;    // whose sheet is displayed (null = own)
@@ -215,12 +211,15 @@ function onLogin() {
   showScreen("dashboard-screen");
   loadUserList();
   loadSheet(currentUser, true);
+  checkAdmin();
 }
 
 // Logout
 document.getElementById("logout-btn").addEventListener("click", () => {
   currentUser = null;
   viewingUser = null;
+  isAdmin = false;
+  document.getElementById("add-news-btn").classList.add("hidden");
   document.getElementById("username-input").value = "";
   document.getElementById("password-input").value = "";
   authError.textContent = "";
@@ -1401,3 +1400,220 @@ function escapeHtml(str) {
   div.textContent = str || "";
   return div.innerHTML;
 }
+
+// ============================================
+// MAIN TAB SWITCHING
+// ============================================
+document.querySelectorAll(".main-tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".main-tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".main-tab-content").forEach(c => c.classList.add("hidden"));
+    btn.classList.add("active");
+    document.getElementById("main-tab-" + btn.dataset.tab).classList.remove("hidden");
+    if (btn.dataset.tab === "news") loadNews();
+  });
+});
+
+// ============================================
+// NEWS
+// ============================================
+let isAdmin = false;
+let editingNewsId = null;
+let pendingDeleteId = null;
+let newsImageFile = null;
+
+async function checkAdmin() {
+  if (!currentUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  isAdmin = !!(doc.exists && doc.data().isAdmin === true);
+  document.getElementById("add-news-btn").classList.toggle("hidden", !isAdmin);
+}
+
+function formatNewsTimestamp(ts) {
+  if (!ts) return "";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  let h = d.getHours(), m = d.getMinutes(), ampm = "AM";
+  if (h >= 12) { ampm = "PM"; if (h > 12) h -= 12; }
+  if (h === 0) h = 12;
+  const mm = m < 10 ? "0" + m : m;
+  return `${months[d.getMonth()]} ${d.getDate()}, ${h}:${mm} ${ampm}`;
+}
+
+async function loadNews() {
+  const feed = document.getElementById("news-feed");
+  feed.innerHTML = `<p class="news-empty">Loading...</p>`;
+  try {
+    const snap = await db.collection("news").orderBy("createdAt", "desc").get();
+    if (snap.empty) {
+      feed.innerHTML = `<p class="news-empty">No news yet. Check back soon!</p>`;
+      return;
+    }
+    feed.innerHTML = "";
+    snap.forEach(docSnap => {
+      feed.appendChild(buildNewsCard(docSnap.id, docSnap.data()));
+    });
+  } catch (e) {
+    feed.innerHTML = `<p class="news-empty">Error loading news.</p>`;
+  }
+}
+
+function buildNewsCard(id, data) {
+  const card = document.createElement("div");
+  card.className = "news-card";
+
+  const header = document.createElement("div");
+  header.className = "news-card-header";
+
+  const titleEl = document.createElement("div");
+  titleEl.className = "news-card-title";
+  titleEl.textContent = data.title || "Untitled";
+  header.appendChild(titleEl);
+
+  if (isAdmin) {
+    const actions = document.createElement("div");
+    actions.className = "news-admin-actions";
+    const editBtn = document.createElement("button");
+    editBtn.className = "btn btn-small";
+    editBtn.textContent = "Edit";
+    editBtn.addEventListener("click", () => openNewsModal(id, data));
+    const delBtn = document.createElement("button");
+    delBtn.className = "btn btn-small btn-danger";
+    delBtn.textContent = "Delete";
+    delBtn.addEventListener("click", () => openDeleteModal(id));
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+    header.appendChild(actions);
+  }
+
+  card.appendChild(header);
+
+  if (data.imageUrl) {
+    const img = document.createElement("img");
+    img.src = data.imageUrl;
+    img.alt = data.title || "";
+    card.appendChild(img);
+  }
+
+  if (data.description) {
+    const body = document.createElement("div");
+    body.className = "news-card-body";
+    body.textContent = data.description;
+    card.appendChild(body);
+  }
+
+  const ts = document.createElement("div");
+  ts.className = "news-card-timestamp";
+  ts.textContent = formatNewsTimestamp(data.createdAt);
+  card.appendChild(ts);
+
+  return card;
+}
+
+// ---- News Modal ----
+function openNewsModal(id = null, data = null) {
+  editingNewsId = id;
+  newsImageFile = null;
+  document.getElementById("news-modal-title").textContent = id ? "Edit Post" : "New Post";
+  document.getElementById("news-post-title").value = data ? (data.title || "") : "";
+  document.getElementById("news-post-desc").value = data ? (data.description || "") : "";
+  document.getElementById("news-post-image").value = "";
+  const preview = document.getElementById("news-image-preview");
+  if (data && data.imageUrl) {
+    preview.innerHTML = `<img src="${escapeHtml(data.imageUrl)}" alt="current image">`;
+  } else {
+    preview.innerHTML = "";
+  }
+  document.getElementById("news-modal").classList.remove("hidden");
+}
+
+document.getElementById("add-news-btn").addEventListener("click", () => openNewsModal());
+
+document.getElementById("news-modal-cancel").addEventListener("click", () => {
+  document.getElementById("news-modal").classList.add("hidden");
+});
+
+document.getElementById("news-post-image").addEventListener("change", (e) => {
+  newsImageFile = e.target.files[0] || null;
+  const preview = document.getElementById("news-image-preview");
+  if (newsImageFile) {
+    const url = URL.createObjectURL(newsImageFile);
+    preview.innerHTML = `<img src="${url}" alt="preview">`;
+  } else {
+    preview.innerHTML = "";
+  }
+});
+
+document.getElementById("news-modal-save").addEventListener("click", async () => {
+  if (!isAdmin) return;
+  const title = document.getElementById("news-post-title").value.trim();
+  const desc = document.getElementById("news-post-desc").value.trim();
+  if (!title) { alert("Please enter a title."); return; }
+
+  const saveBtn = document.getElementById("news-modal-save");
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Saving...";
+
+  try {
+    let imageUrl = (editingNewsId ? null : null);
+    // If editing, keep existing image unless new one uploaded
+    if (editingNewsId) {
+      const existing = await db.collection("news").doc(editingNewsId).get();
+      imageUrl = existing.data().imageUrl || null;
+    }
+
+    // Upload new image if provided
+    if (newsImageFile) {
+      const ext = newsImageFile.name.split(".").pop();
+      const ref = storage.ref(`news/${Date.now()}.${ext}`);
+      await ref.put(newsImageFile);
+      imageUrl = await ref.getDownloadURL();
+    }
+
+    const postData = {
+      title,
+      description: desc,
+      imageUrl: imageUrl || null,
+      createdAt: editingNewsId
+        ? (await db.collection("news").doc(editingNewsId).get()).data().createdAt
+        : firebase.firestore.Timestamp.now()
+    };
+
+    if (editingNewsId) {
+      await db.collection("news").doc(editingNewsId).update(postData);
+    } else {
+      await db.collection("news").add(postData);
+    }
+
+    document.getElementById("news-modal").classList.add("hidden");
+    loadNews();
+  } catch (e) {
+    alert("Error saving post: " + e.message);
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = "Post";
+  }
+});
+
+// ---- Delete Modal ----
+function openDeleteModal(id) {
+  pendingDeleteId = id;
+  document.getElementById("news-delete-modal").classList.remove("hidden");
+}
+
+document.getElementById("news-delete-cancel").addEventListener("click", () => {
+  document.getElementById("news-delete-modal").classList.add("hidden");
+  pendingDeleteId = null;
+});
+
+document.getElementById("news-delete-confirm").addEventListener("click", async () => {
+  if (!pendingDeleteId || !isAdmin) return;
+  try {
+    await db.collection("news").doc(pendingDeleteId).delete();
+    document.getElementById("news-delete-modal").classList.add("hidden");
+    pendingDeleteId = null;
+    loadNews();
+  } catch (e) {
+    alert("Error deleting post: " + e.message);
+  }
+});
