@@ -12,7 +12,7 @@
   <div id="auth-screen" class="screen active">
     <div class="auth-container">
       <h1 class="game-title">Elemental Wars</h1>
-      <p class="subtitle">Stat Tracker <span class="version-tag">v1.1</span></p>
+      <p class="subtitle">Stat Tracker <span class="version-tag">v1.2</span></p>
       <div class="auth-box">
         <div class="auth-tabs">
           <button class="auth-tab active" data-tab="login">Log In</button>
@@ -37,7 +37,7 @@
   <!-- ==================== DASHBOARD ==================== -->
   <div id="dashboard-screen" class="screen">
     <header class="top-bar">
-      <h2 class="logo">Elemental Wars <span class="version-tag">v1.1</span></h2>
+      <h2 class="logo">Elemental Wars <span class="version-tag">v1.2</span></h2>
       <div class="top-bar-right">
         <span id="current-user-display"></span>
         <button id="logout-btn" class="btn btn-small">Log Out</button>
@@ -495,9 +495,50 @@
 
   <!-- Inventory Edit Modal -->
   <div id="inventory-modal" class="modal hidden">
-    <div class="modal-content">
+    <div class="modal-content modal-content-wide">
       <h3>Edit Inventory Slot</h3>
-      <input type="text" id="inventory-item-input" placeholder='e.g. "Christmas tree 5"' autocomplete="off">
+      <div class="inv-modal-row">
+        <label>Name</label>
+        <input type="text" id="inv-name-input" placeholder="Item name" autocomplete="off">
+      </div>
+      <div class="inv-modal-row">
+        <label>Quantity (optional)</label>
+        <input type="number" id="inv-count-input" placeholder="—" min="1" autocomplete="off">
+      </div>
+      <div class="inv-modal-row">
+        <label>Type</label>
+        <select id="inv-type-input">
+          <option value="">Select type</option>
+          <option value="meleeWeapon">Melee Weapon</option>
+          <option value="defence">Defence</option>
+          <option value="rangedWeapon">Ranged Weapon</option>
+          <option value="armour">Armour</option>
+          <option value="artifact">Artifact</option>
+          <option value="transportation">Transportation</option>
+          <option value="food">Food</option>
+        </select>
+      </div>
+      <div class="inv-modal-row" id="inv-rarity-row">
+        <label>Rarity</label>
+        <select id="inv-rarity-input">
+          <option value="">Select rarity</option>
+          <option value="common">Common</option>
+          <option value="uncommon">Uncommon</option>
+          <option value="rare">Rare</option>
+          <option value="epicRare">Epic Rare</option>
+          <option value="ultraRare">Ultra Rare</option>
+          <option value="legendary">Legendary</option>
+          <option value="mythical">Mythical</option>
+          <option value="elder">Elder</option>
+          <option value="exclusive">Exclusive</option>
+        </select>
+      </div>
+      <div class="inv-modal-row">
+        <label>Icon</label>
+        <input type="text" id="inv-emoji-search" placeholder="Search for icon..." autocomplete="off">
+        <div class="emoji-results" id="emoji-results"></div>
+        <div class="emoji-selected" id="emoji-selected"></div>
+      </div>
       <div class="modal-buttons">
         <button class="btn btn-small" id="inv-clear-btn">Clear</button>
         <button class="btn btn-small" id="inv-cancel-btn">Cancel</button>

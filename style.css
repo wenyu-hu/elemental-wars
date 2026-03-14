@@ -906,13 +906,44 @@ input[type="number"] { -moz-appearance: textfield; }
 
 .inv-cell .inv-count {
   position: absolute;
-  bottom: 2px;
-  right: 4px;
-  font-size: 0.65rem;
+  bottom: 1px;
+  right: 3px;
+  font-size: 0.55rem;
   font-weight: 700;
   color: var(--text-primary);
   text-shadow: 0 0 3px var(--bg-primary);
 }
+
+.inv-cell .inv-emoji {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.inv-cell .inv-name {
+  position: absolute;
+  bottom: 1px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.4rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 2px;
+}
+
+/* Rarity border colors */
+.inv-cell.rarity-common { border-color: #888; border-width: 2px; }
+.inv-cell.rarity-uncommon { border-color: #2ecc40; border-width: 2px; }
+.inv-cell.rarity-rare { border-color: #3498db; border-width: 2px; }
+.inv-cell.rarity-epicRare { border-color: #e74c3c; border-width: 2px; }
+.inv-cell.rarity-ultraRare { border-color: #7fdbff; border-width: 2px; }
+.inv-cell.rarity-legendary { border-color: #ffdc00; border-width: 2px; }
+.inv-cell.rarity-mythical { border-color: #90ee90; border-width: 2px; }
+.inv-cell.rarity-elder { border-color: #b10dc9; border-width: 2px; }
+.inv-cell.rarity-exclusive { border-color: #ff69b4; border-width: 2px; }
+.inv-cell.rarity-food { border-color: #ffffff; border-width: 2px; }
 
 /* ============ ABILITIES ============ */
 .abilities-section {
@@ -976,6 +1007,78 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 
 .modal-content input:focus { border-color: var(--accent); }
+
+.modal-content-wide {
+  max-width: 420px;
+}
+
+.inv-modal-row {
+  margin-bottom: 10px;
+}
+
+.inv-modal-row label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.inv-modal-row select {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.inv-modal-row select:focus { border-color: var(--accent); }
+
+.emoji-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.emoji-option {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.emoji-option:hover {
+  border-color: var(--accent);
+  background: var(--bg-card);
+}
+
+.emoji-option.selected {
+  border-color: var(--accent);
+  background: rgba(255,107,53,0.2);
+}
+
+.emoji-selected {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.emoji-selected .selected-emoji-display {
+  font-size: 1.5rem;
+  margin-right: 6px;
+}
 
 .modal-buttons {
   display: flex;

@@ -652,8 +652,24 @@ async function removeSpell(index) {
 }
 
 // ============================================
-// INVENTORY
+// INVENTORY (v1.2 - with type, rarity, emoji picker, name)
 // ============================================
+
+// Build a searchable emoji list from EMOJI_MAP
+const EMOJI_SEARCH_LIST = [];
+(function buildEmojiSearchList() {
+  const seen = new Set();
+  for (const [keyword, emoji] of Object.entries(EMOJI_MAP)) {
+    const key = keyword + emoji;
+    if (!seen.has(key)) {
+      seen.add(key);
+      EMOJI_SEARCH_LIST.push({ keyword, emoji });
+    }
+  }
+})();
+
+let selectedEmoji = null;
+
 function renderInventory(inventory) {
   const grid = document.getElementById("inventory-grid");
   grid.innerHTML = "";
@@ -661,12 +677,46 @@ function renderInventory(inventory) {
     const cell = document.createElement("div");
     cell.className = "inv-cell";
     cell.dataset.index = i;
-    const raw = inventory[i] || "";
-    if (raw) {
-      const parsed = parseInventoryInput(raw);
+    const item = inventory[i] || "";
+
+    // v1.2: items can be objects {name, emoji, type, rarity, count} or legacy strings
+    if (item && typeof item === "object") {
+      // Apply rarity border
+      if (item.type === "food") {
+        cell.classList.add("rarity-food");
+      } else if (item.rarity) {
+        cell.classList.add("rarity-" + item.rarity);
+      }
+      // Emoji
+      if (item.emoji) {
+        const emojiSpan = document.createElement("span");
+        emojiSpan.className = "inv-emoji";
+        emojiSpan.textContent = item.emoji;
+        cell.appendChild(emojiSpan);
+      }
+      // Count
+      if (item.count) {
+        const countSpan = document.createElement("span");
+        countSpan.className = "inv-count";
+        countSpan.textContent = item.count;
+        cell.appendChild(countSpan);
+      }
+      // Name below emoji
+      if (item.name) {
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "inv-name";
+        nameSpan.textContent = item.name;
+        cell.appendChild(nameSpan);
+      }
+    } else if (item && typeof item === "string") {
+      // Legacy string format - show with old logic
+      const parsed = parseInventoryInput(item);
       if (parsed) {
         const emoji = getItemEmoji(parsed.text);
-        cell.textContent = emoji;
+        const emojiSpan = document.createElement("span");
+        emojiSpan.className = "inv-emoji";
+        emojiSpan.textContent = emoji;
+        cell.appendChild(emojiSpan);
         if (parsed.count !== null) {
           const countSpan = document.createElement("span");
           countSpan.className = "inv-count";
@@ -675,20 +725,105 @@ function renderInventory(inventory) {
         }
       }
     }
-    cell.addEventListener("click", () => openInventoryModal(i, raw));
+    cell.addEventListener("click", () => openInventoryModal(i, item));
     grid.appendChild(cell);
   }
 }
 
-function openInventoryModal(index, currentValue) {
-  if (viewingUser) return; // read-only
+function openInventoryModal(index, currentItem) {
+  if (viewingUser) return;
   inventoryEditIndex = index;
-  const modal = document.getElementById("inventory-modal");
-  const input = document.getElementById("inventory-item-input");
-  input.value = currentValue || "";
-  modal.classList.remove("hidden");
-  input.focus();
+  selectedEmoji = null;
+
+  const nameInput = document.getElementById("inv-name-input");
+  const countInput = document.getElementById("inv-count-input");
+  const typeInput = document.getElementById("inv-type-input");
+  const rarityInput = document.getElementById("inv-rarity-input");
+  const rarityRow = document.getElementById("inv-rarity-row");
+  const emojiSearch = document.getElementById("inv-emoji-search");
+  const emojiResults = document.getElementById("emoji-results");
+  const emojiSelected = document.getElementById("emoji-selected");
+
+  // Reset
+  nameInput.value = "";
+  countInput.value = "";
+  typeInput.value = "";
+  rarityInput.value = "";
+  rarityRow.style.display = "";
+  emojiSearch.value = "";
+  emojiResults.innerHTML = "";
+  emojiSelected.innerHTML = "";
+
+  // Pre-fill if editing existing v1.2 object
+  if (currentItem && typeof currentItem === "object") {
+    nameInput.value = currentItem.name || "";
+    countInput.value = currentItem.count || "";
+    typeInput.value = currentItem.type || "";
+    rarityInput.value = currentItem.rarity || "";
+    if (currentItem.type === "food") {
+      rarityRow.style.display = "none";
+    }
+    if (currentItem.emoji) {
+      selectedEmoji = currentItem.emoji;
+      emojiSelected.innerHTML = `<span class="selected-emoji-display">${currentItem.emoji}</span> Selected`;
+    }
+  }
+
+  document.getElementById("inventory-modal").classList.remove("hidden");
+  nameInput.focus();
 }
+
+// Type change: hide rarity for food
+document.getElementById("inv-type-input").addEventListener("change", () => {
+  const typeVal = document.getElementById("inv-type-input").value;
+  const rarityRow = document.getElementById("inv-rarity-row");
+  if (typeVal === "food") {
+    rarityRow.style.display = "none";
+    document.getElementById("inv-rarity-input").value = "";
+  } else {
+    rarityRow.style.display = "";
+  }
+});
+
+// Emoji search/picker
+document.getElementById("inv-emoji-search").addEventListener("input", (e) => {
+  const query = e.target.value.trim().toLowerCase();
+  const results = document.getElementById("emoji-results");
+  results.innerHTML = "";
+  if (!query) return;
+
+  const matches = [];
+  const seenEmojis = new Set();
+  for (const item of EMOJI_SEARCH_LIST) {
+    if (item.keyword.includes(query) && !seenEmojis.has(item.emoji)) {
+      seenEmojis.add(item.emoji);
+      matches.push(item);
+    }
+  }
+  // Also do partial match
+  for (const item of EMOJI_SEARCH_LIST) {
+    if (!seenEmojis.has(item.emoji) && item.keyword.startsWith(query)) {
+      seenEmojis.add(item.emoji);
+      matches.push(item);
+    }
+  }
+
+  matches.slice(0, 40).forEach((item) => {
+    const btn = document.createElement("div");
+    btn.className = "emoji-option" + (selectedEmoji === item.emoji ? " selected" : "");
+    btn.textContent = item.emoji;
+    btn.title = item.keyword;
+    btn.addEventListener("click", () => {
+      selectedEmoji = item.emoji;
+      document.getElementById("emoji-selected").innerHTML =
+        `<span class="selected-emoji-display">${item.emoji}</span> ${item.keyword}`;
+      // Update selection visual
+      results.querySelectorAll(".emoji-option").forEach((el) => el.classList.remove("selected"));
+      btn.classList.add("selected");
+    });
+    results.appendChild(btn);
+  });
+});
 
 document.getElementById("inv-cancel-btn").addEventListener("click", () => {
   document.getElementById("inventory-modal").classList.add("hidden");
@@ -706,19 +841,48 @@ document.getElementById("inv-clear-btn").addEventListener("click", async () => {
 
 document.getElementById("inv-save-btn").addEventListener("click", async () => {
   if (inventoryEditIndex === null || !currentUser) return;
-  const input = document.getElementById("inventory-item-input");
-  const value = input.value.trim();
+
+  const name = document.getElementById("inv-name-input").value.trim();
+  const countVal = document.getElementById("inv-count-input").value.trim();
+  const type = document.getElementById("inv-type-input").value;
+  const rarity = document.getElementById("inv-rarity-input").value;
+
+  // Validation: need at least a name and type
+  if (!name || !type) {
+    alert("Please enter a name and select a type.");
+    return;
+  }
+  // Food requires quantity
+  if (type === "food" && !countVal) {
+    alert("Food items require a quantity.");
+    return;
+  }
+  // Non-food requires rarity
+  if (type !== "food" && !rarity) {
+    alert("Please select a rarity.");
+    return;
+  }
+
+  const emoji = selectedEmoji || getItemEmoji(name);
+
+  const itemObj = {
+    name: name,
+    emoji: emoji,
+    type: type,
+    rarity: type === "food" ? "" : rarity,
+    count: countVal ? parseInt(countVal) : null
+  };
+
   const doc = await db.collection("users").doc(currentUser).get();
   const inventory = doc.data().inventory || new Array(32).fill("");
-  inventory[inventoryEditIndex] = value;
+  inventory[inventoryEditIndex] = itemObj;
   await db.collection("users").doc(currentUser).update({ inventory });
   renderInventory(inventory);
   document.getElementById("inventory-modal").classList.add("hidden");
 });
 
-// Enter key in modal
-document.getElementById("inventory-item-input").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") document.getElementById("inv-save-btn").click();
+// Keyboard shortcuts in inventory modal
+document.getElementById("inv-name-input").addEventListener("keydown", (e) => {
   if (e.key === "Escape") document.getElementById("inv-cancel-btn").click();
 });
 
