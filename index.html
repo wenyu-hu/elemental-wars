@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elemental Wars - Stat Tracker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ==================== AUTH SCREEN ==================== -->
+  <div id="auth-screen" class="screen active">
+    <div class="auth-container">
+      <h1 class="game-title">Elemental Wars</h1>
+      <p class="subtitle">Stat Tracker</p>
+      <div class="auth-box">
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-tab="login">Log In</button>
+          <button class="auth-tab" data-tab="register">Register</button>
+        </div>
+        <form id="auth-form">
+          <div class="input-group">
+            <label for="username-input">Username</label>
+            <input type="text" id="username-input" required autocomplete="off">
+          </div>
+          <div class="input-group">
+            <label for="password-input">Password</label>
+            <input type="password" id="password-input" required>
+          </div>
+          <button type="submit" id="auth-submit-btn" class="btn btn-primary">Log In</button>
+          <p id="auth-error" class="error-msg"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== DASHBOARD ==================== -->
+  <div id="dashboard-screen" class="screen">
+    <header class="top-bar">
+      <h2 class="logo">Elemental Wars</h2>
+      <div class="top-bar-right">
+        <span id="current-user-display"></span>
+        <button id="logout-btn" class="btn btn-small">Log Out</button>
+      </div>
+    </header>
+
+    <div class="dashboard-layout">
+      <!-- Sidebar: User Directory -->
+      <aside class="user-directory">
+        <h3>Players</h3>
+        <input type="text" id="user-search" placeholder="Search players..." autocomplete="off">
+        <ul id="user-list"></ul>
+      </aside>
+
+      <!-- Main: Status Sheet -->
+      <main class="sheet-area">
+        <div id="viewing-banner" class="viewing-banner hidden">
+          Viewing <span id="viewing-username"></span>'s sheet (read-only)
+          <button id="back-to-own" class="btn btn-small">Back to My Sheet</button>
+        </div>
+        <div id="status-sheet">
+          <!-- Top Info -->
+          <section class="sheet-header">
+            <div class="header-left">
+              <div class="stat-badges">
+                <div class="stat-badge" title="Tokens">
+                  <span class="badge-circle badge-tokens">T</span>
+                  <input type="number" class="stat-input" id="tokens-input" placeholder="—" min="0">
+                </div>
+                <div class="stat-badge" title="Booster Points">
+                  <span class="badge-circle badge-booster">B</span>
+                  <input type="number" class="stat-input" id="booster-input" placeholder="—" min="0">
+                </div>
+              </div>
+            </div>
+            <div class="header-right">
+              <div class="username-display" id="sheet-username"></div>
+              <div class="level-display">
+                <span>Lv.</span>
+                <input type="number" class="stat-input" id="level-input" placeholder="—" min="0">
+              </div>
+            </div>
+          </section>
+
+          <!-- Health Bar -->
+          <section class="health-section">
+            <span class="health-icon">&#10084;</span>
+            <div class="health-bar-container">
+              <div class="health-bar-fill" id="health-bar-fill"></div>
+              <div class="health-bar-text">
+                <input type="number" id="hp-current" class="hp-input" min="0" value="100">
+                <span>/</span>
+                <input type="number" id="hp-max" class="hp-input" min="1" value="100">
+                <span>HP</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Equipment Categories -->
+          <section class="equipment-grid">
+            <!-- Melee Weapon -->
+            <div class="equip-card" data-category="meleeWeapon">
+              <div class="equip-header">
+                <span class="equip-icon">&#9876;</span>
+                <input type="text" class="equip-name" placeholder="Melee Weapon" data-field="name">
+                <select class="rarity-select" data-field="rarity">
+                  <option value="">Rarity</option>
+                  <option value="common">Common</option>
+                  <option value="uncommon">Uncommon</option>
+                  <option value="rare">Rare</option>
+                  <option value="epicRare">Epic Rare</option>
+                  <option value="ultraRare">Ultra Rare</option>
+                  <option value="legendary">Legendary</option>
+                  <option value="mythical">Mythical</option>
+                  <option value="elder">Elder</option>
+                  <option value="exclusive">Exclusive</option>
+                </select>
+                <select class="exclusive-num hidden" data-field="exclusiveNum">
+                  <option value="">#</option>
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                  <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                </select>
+              </div>
+              <div class="equip-stats">
+                <div class="stat-row"><label>Damage</label><input type="text" data-field="damage" placeholder="—"></div>
+                <div class="stat-row"><label>Attack Speed</label><input type="text" data-field="attackSpeed" placeholder="—"></div>
+                <div class="stat-row"><label>Range</label><input type="text" data-field="range" placeholder="—"></div>
+                <div class="stat-row"><label>Specialities</label><input type="text" data-field="specialities" placeholder="—"></div>
+              </div>
+              <div class="enchantments-section">
+                <label class="enchant-label">Enchantments</label>
+                <textarea data-field="enchantments" placeholder="None"></textarea>
+              </div>
+            </div>
+
+            <!-- Defence -->
+            <div class="equip-card" data-category="defence">
+              <div class="equip-header">
+                <span class="equip-icon">&#128737;</span>
+                <input type="text" class="equip-name" placeholder="Defence" data-field="name">
+                <select class="rarity-select" data-field="rarity">
+                  <option value="">Rarity</option>
+                  <option value="common">Common</option><option value="uncommon">Uncommon</option><option value="rare">Rare</option>
+                  <option value="epicRare">Epic Rare</option><option value="ultraRare">Ultra Rare</option><option value="legendary">Legendary</option>
+                  <option value="mythical">Mythical</option><option value="elder">Elder</option><option value="exclusive">Exclusive</option>
+                </select>
+                <select class="exclusive-num hidden" data-field="exclusiveNum">
+                  <option value="">#</option>
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                  <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                </select>
+              </div>
+              <div class="equip-stats">
+                <div class="stat-row"><label>Defence Level</label><input type="text" data-field="defenceLevel" placeholder="—"></div>
+                <div class="stat-row"><label>Durability</label><input type="text" data-field="durability" placeholder="—"></div>
+              </div>
+              <div class="enchantments-section">
+                <label class="enchant-label">Enchantments</label>
+                <textarea data-field="enchantments" placeholder="None"></textarea>
+              </div>
+            </div>
+
+            <!-- Ranged Weapon -->
+            <div class="equip-card" data-category="rangedWeapon">
+              <div class="equip-header">
+                <span class="equip-icon">&#127993;</span>
+                <input type="text" class="equip-name" placeholder="Ranged Weapon" data-field="name">
+                <select class="rarity-select" data-field="rarity">
+                  <option value="">Rarity</option>
+                  <option value="common">Common</option><option value="uncommon">Uncommon</option><option value="rare">Rare</option>
+                  <option value="epicRare">Epic Rare</option><option value="ultraRare">Ultra Rare</option><option value="legendary">Legendary</option>
+                  <option value="mythical">Mythical</option><option value="elder">Elder</option><option value="exclusive">Exclusive</option>
+                </select>
+                <select class="exclusive-num hidden" data-field="exclusiveNum">
+                  <option value="">#</option>
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                  <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                </select>
+              </div>
+              <div class="equip-stats">
+                <div class="stat-row"><label>Projectile Speed</label><input type="text" data-field="projectileSpeed" placeholder="—"></div>
+                <div class="stat-row"><label>Specialities</label><input type="text" data-field="specialities" placeholder="—"></div>
+                <div class="stat-row"><label>Reload</label><input type="text" data-field="reload" placeholder="—"></div>
+              </div>
+              <div class="enchantments-section">
+                <label class="enchant-label">Enchantments</label>
+                <textarea data-field="enchantments" placeholder="None"></textarea>
+              </div>
+            </div>
+
+            <!-- Armour -->
+            <div class="equip-card" data-category="armour">
+              <div class="equip-header">
+                <span class="equip-icon">&#9935;</span>
+                <input type="text" class="equip-name" placeholder="Armour" data-field="name">
+                <select class="rarity-select" data-field="rarity">
+                  <option value="">Rarity</option>
+                  <option value="common">Common</option><option value="uncommon">Uncommon</option><option value="rare">Rare</option>
+                  <option value="epicRare">Epic Rare</option><option value="ultraRare">Ultra Rare</option><option value="legendary">Legendary</option>
+                  <option value="mythical">Mythical</option><option value="elder">Elder</option><option value="exclusive">Exclusive</option>
+                </select>
+                <select class="exclusive-num hidden" data-field="exclusiveNum">
+                  <option value="">#</option>
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                  <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                </select>
+              </div>
+              <div class="equip-stats">
+                <div class="stat-row"><label>Defence Level</label><input type="text" data-field="defenceLevel" placeholder="—"></div>
+                <div class="stat-row"><label>Specialities</label><input type="text" data-field="specialities" placeholder="—"></div>
+              </div>
+              <div class="enchantments-section">
+                <label class="enchant-label">Enchantments</label>
+                <textarea data-field="enchantments" placeholder="None"></textarea>
+              </div>
+            </div>
+
+            <!-- Artifact -->
+            <div class="equip-card" data-category="artifact">
+              <div class="equip-header">
+                <span class="equip-icon">&#11088;</span>
+                <input type="text" class="equip-name" placeholder="Artifact" data-field="name">
+                <select class="rarity-select" data-field="rarity">
+                  <option value="">Rarity</option>
+                  <option value="common">Common</option><option value="uncommon">Uncommon</option><option value="rare">Rare</option>
+                  <option value="epicRare">Epic Rare</option><option value="ultraRare">Ultra Rare</option><option value="legendary">Legendary</option>
+                  <option value="mythical">Mythical</option><option value="elder">Elder</option><option value="exclusive">Exclusive</option>
+                </select>
+                <select class="exclusive-num hidden" data-field="exclusiveNum">
+                  <option value="">#</option>
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                  <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                </select>
+              </div>
+              <div class="equip-stats">
+                <div class="stat-row"><label>Level</label><input type="text" data-field="level" placeholder="—"></div>
+                <div class="stat-row"><label>Duration</label><input type="text" data-field="duration" placeholder="—"></div>
+                <div class="stat-row"><label>Reload</label><input type="text" data-field="reload" placeholder="—"></div>
+                <div class="stat-row"><label>Effect</label><input type="text" data-field="effect" placeholder="—"></div>
+              </div>
+              <div class="enchantments-section">
+                <label class="enchant-label">Enchantments</label>
+                <textarea data-field="enchantments" placeholder="None"></textarea>
+              </div>
+            </div>
+
+            <!-- Transportation -->
+            <div class="equip-card" data-category="transportation">
+              <div class="equip-header">
+                <span class="equip-icon">&#128663;</span>
+                <input type="text" class="equip-name" placeholder="Transportation" data-field="name">
+                <select class="rarity-select" data-field="rarity">
+                  <option value="">Rarity</option>
+                  <option value="common">Common</option><option value="uncommon">Uncommon</option><option value="rare">Rare</option>
+                  <option value="epicRare">Epic Rare</option><option value="ultraRare">Ultra Rare</option><option value="legendary">Legendary</option>
+                  <option value="mythical">Mythical</option><option value="elder">Elder</option><option value="exclusive">Exclusive</option>
+                </select>
+                <select class="exclusive-num hidden" data-field="exclusiveNum">
+                  <option value="">#</option>
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                  <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                </select>
+              </div>
+              <div class="equip-stats">
+                <div class="stat-row">
+                  <label>Health</label>
+                  <div class="transport-hp">
+                    <input type="number" data-field="currentHP" placeholder="—" min="0">
+                    <span>/</span>
+                    <input type="number" data-field="maxHP" placeholder="—" min="1">
+                    <span>HP</span>
+                  </div>
+                </div>
+                <div class="stat-row"><label>Weapons</label><input type="text" data-field="weapons" placeholder="—"></div>
+              </div>
+              <div class="enchantments-section">
+                <label class="enchant-label">Enchantments</label>
+                <textarea data-field="enchantments" placeholder="None"></textarea>
+              </div>
+            </div>
+          </section>
+
+          <!-- Lists Section -->
+          <section class="lists-section">
+            <!-- Pets -->
+            <div class="list-card" data-list="pets">
+              <h3><span class="list-icon">&#128049;</span> Pets</h3>
+              <div class="list-items" id="pets-list"></div>
+              <div class="list-add">
+                <input type="text" placeholder="Pet name" class="list-input" id="pet-name-input">
+                <button class="btn btn-small btn-add" id="add-pet-btn">Add</button>
+              </div>
+            </div>
+
+            <!-- Extensions -->
+            <div class="list-card" data-list="extensions">
+              <h3><span class="list-icon">&#129523;</span> Extensions</h3>
+              <div class="list-items" id="extensions-list"></div>
+              <div class="list-add">
+                <input type="text" placeholder="Extension name" class="list-input" id="ext-name-input">
+                <input type="text" placeholder="Applied to" class="list-input" id="ext-for-input">
+                <button class="btn btn-small btn-add" id="add-ext-btn">Add</button>
+              </div>
+            </div>
+
+            <!-- Accessories -->
+            <div class="list-card" data-list="accessories">
+              <h3><span class="list-icon">&#128255;</span> Accessories</h3>
+              <div class="accessory-slots">
+                <div class="accessory-slot">
+                  <label>Necklace</label>
+                  <input type="text" id="acc-necklace" placeholder="—" data-field="necklace">
+                </div>
+                <div class="accessory-slot">
+                  <label>Bracelet</label>
+                  <input type="text" id="acc-bracelet" placeholder="—" data-field="bracelet">
+                </div>
+                <div class="accessory-slot">
+                  <label>Ring</label>
+                  <input type="text" id="acc-ring" placeholder="—" data-field="ring">
+                </div>
+              </div>
+            </div>
+
+            <!-- Gems -->
+            <div class="list-card" data-list="gems">
+              <h3><span class="list-icon">&#128142;</span> Gems</h3>
+              <div class="list-items" id="gems-list"></div>
+              <div class="list-add">
+                <input type="text" placeholder="Gem name" class="list-input" id="gem-name-input">
+                <button class="btn btn-small btn-add" id="add-gem-btn">Add</button>
+              </div>
+            </div>
+
+            <!-- Arrows -->
+            <div class="list-card" data-list="arrows">
+              <h3><span class="list-icon">&#127993;</span> Arrows</h3>
+              <div class="list-items" id="arrows-list"></div>
+              <div class="list-add">
+                <input type="text" placeholder="Arrow type" class="list-input" id="arrow-name-input">
+                <input type="number" placeholder="Qty" class="list-input list-input-small" id="arrow-count-input" min="0">
+                <button class="btn btn-small btn-add" id="add-arrow-btn">Add</button>
+              </div>
+            </div>
+
+            <!-- Spells -->
+            <div class="list-card" data-list="spells">
+              <h3><span class="list-icon">&#129668;</span> Spells</h3>
+              <div class="list-items" id="spells-list"></div>
+              <div class="list-add">
+                <input type="text" placeholder="Spell name" class="list-input" id="spell-name-input">
+                <select class="list-input list-input-small" id="spell-level-input">
+                  <option value="">Lv</option>
+                  <option value="I">I</option><option value="II">II</option><option value="III">III</option>
+                  <option value="IV">IV</option><option value="V">V</option>
+                </select>
+                <button class="btn btn-small btn-add" id="add-spell-btn">Add</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Inventory -->
+          <section class="inventory-section">
+            <h3>Inventory</h3>
+            <div class="inventory-grid" id="inventory-grid">
+              <!-- 32 cells generated by JS -->
+            </div>
+          </section>
+
+          <!-- Abilities -->
+          <section class="abilities-section">
+            <h3>Abilities <span class="ability-count" id="ability-count">(0/5)</span></h3>
+            <div class="abilities-list" id="abilities-list"></div>
+            <div class="list-add" id="ability-add-area">
+              <input type="text" placeholder="Ability name" class="list-input" id="ability-name-input">
+              <select class="list-input list-input-small" id="ability-level-input">
+                <option value="">Lv</option>
+                <option value="I">I</option><option value="II">II</option><option value="III">III</option>
+                <option value="IV">IV</option><option value="V">V</option>
+              </select>
+              <button class="btn btn-small btn-add" id="add-ability-btn">Add</button>
+            </div>
+          </section>
+
+        </div><!-- end status-sheet -->
+      </main>
+    </div>
+  </div>
+
+  <!-- Inventory Edit Modal -->
+  <div id="inventory-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Edit Inventory Slot</h3>
+      <input type="text" id="inventory-item-input" placeholder='e.g. "Christmas tree 5"' autocomplete="off">
+      <div class="modal-buttons">
+        <button class="btn btn-small" id="inv-clear-btn">Clear</button>
+        <button class="btn btn-small" id="inv-cancel-btn">Cancel</button>
+        <button class="btn btn-primary btn-small" id="inv-save-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

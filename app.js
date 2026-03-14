@@ -1,0 +1,762 @@
+/* ============================================
+   ELEMENTAL WARS - APP LOGIC
+   ============================================ */
+
+// --- Firebase Init ---
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// --- State ---
+let currentUser = null;   // logged-in username
+let viewingUser = null;    // whose sheet is displayed (null = own)
+let inventoryEditIndex = null;
+
+// --- Emoji map for inventory ---
+const EMOJI_MAP = {
+  sword: "\u2694\uFE0F", swords: "\u2694\uFE0F", blade: "\u2694\uFE0F", dagger: "\u{1F5E1}\uFE0F", knife: "\u{1F5E1}\uFE0F",
+  axe: "\u{1FA93}", pickaxe: "\u26CF\uFE0F", hammer: "\u{1F528}", wrench: "\u{1F527}",
+  shield: "\u{1F6E1}\uFE0F", armor: "\u{1F6E1}\uFE0F", armour: "\u{1F6E1}\uFE0F",
+  bow: "\u{1F3F9}", arrow: "\u{1F3F9}", crossbow: "\u{1F3F9}",
+  wand: "\u{1FA84}", staff: "\u{1FA84}", magic: "\u2728", spell: "\u2728", scroll: "\u{1F4DC}",
+  potion: "\u{1F9EA}", elixir: "\u{1F9EA}", flask: "\u{1F9EA}", bottle: "\u{1F37E}",
+  gem: "\u{1F48E}", diamond: "\u{1F48E}", crystal: "\u{1F48E}", ruby: "\u{1F48E}", emerald: "\u{1F48E}", sapphire: "\u{1F48E}",
+  ring: "\u{1F48D}", necklace: "\u{1F4FF}", amulet: "\u{1F4FF}",
+  key: "\u{1F511}", keys: "\u{1F511}", lock: "\u{1F512}",
+  coin: "\u{1FA99}", coins: "\u{1FA99}", gold: "\u{1FA99}", money: "\u{1F4B0}", treasure: "\u{1F4B0}",
+  heart: "\u2764\uFE0F", health: "\u2764\uFE0F", life: "\u2764\uFE0F",
+  star: "\u2B50", stars: "\u2B50",
+  fire: "\u{1F525}", flame: "\u{1F525}", blaze: "\u{1F525}",
+  ice: "\u2744\uFE0F", frost: "\u2744\uFE0F", snow: "\u2744\uFE0F", cold: "\u2744\uFE0F",
+  water: "\u{1F4A7}", rain: "\u{1F327}\uFE0F", wave: "\u{1F30A}",
+  lightning: "\u26A1", thunder: "\u26A1", electric: "\u26A1", shock: "\u26A1",
+  earth: "\u{1F30D}", rock: "\u{1FAA8}", stone: "\u{1FAA8}", boulder: "\u{1FAA8}",
+  wind: "\u{1F32C}\uFE0F", air: "\u{1F32C}\uFE0F", tornado: "\u{1F32A}\uFE0F",
+  tree: "\u{1F332}", wood: "\u{1FAB5}", log: "\u{1FAB5}", leaf: "\u{1F343}", plant: "\u{1F331}", flower: "\u{1F33A}", mushroom: "\u{1F344}",
+  food: "\u{1F356}", meat: "\u{1F356}", bread: "\u{1F35E}", apple: "\u{1F34E}", fish: "\u{1F41F}", cake: "\u{1F370}",
+  bone: "\u{1F9B4}", skull: "\u{1F480}", skeleton: "\u{1F480}",
+  crown: "\u{1F451}", helmet: "\u{1FA96}", hat: "\u{1F3A9}", cap: "\u{1F9E2}",
+  book: "\u{1F4D6}", books: "\u{1F4DA}", map: "\u{1F5FA}\uFE0F", compass: "\u{1F9ED}",
+  bomb: "\u{1F4A3}", dynamite: "\u{1F9E8}", tnt: "\u{1F9E8}",
+  chest: "\u{1F9F0}", box: "\u{1F4E6}", bag: "\u{1F45C}", backpack: "\u{1F392}",
+  lantern: "\u{1F3EE}", torch: "\u{1DD2D}", candle: "\u{1F56F}\uFE0F", lamp: "\u{1F4A1}",
+  rope: "\u{1FAA2}", chain: "\u26D3\uFE0F", net: "\u{1FAA4}",
+  horse: "\u{1F40E}", dragon: "\u{1F409}", wolf: "\u{1F43A}", cat: "\u{1F431}", dog: "\u{1F436}", bird: "\u{1F426}", eagle: "\u{1F985}",
+  spider: "\u{1F577}\uFE0F", snake: "\u{1F40D}", bat: "\u{1F987}", bear: "\u{1F43B}",
+  car: "\u{1F697}", boat: "\u{1F6A3}", ship: "\u{1F6A2}", rocket: "\u{1F680}", plane: "\u2708\uFE0F",
+  house: "\u{1F3E0}", castle: "\u{1F3F0}", tent: "\u26FA", door: "\u{1F6AA}",
+  flag: "\u{1F3F4}", banner: "\u{1F3F4}",
+  clock: "\u23F0", hourglass: "\u231B", time: "\u23F0",
+  music: "\u{1F3B5}", bell: "\u{1F514}", horn: "\u{1F4EF}",
+  eye: "\u{1F441}\uFE0F", eyes: "\u{1F440}",
+  hand: "\u270B", fist: "\u270A", glove: "\u{1F9E4}",
+  boot: "\u{1F97E}", boots: "\u{1F97E}", shoe: "\u{1F45F}",
+  christmas: "\u{1F384}", present: "\u{1F381}", gift: "\u{1F381}", candy: "\u{1F36C}",
+  moon: "\u{1F319}", sun: "\u2600\uFE0F}", cloud: "\u2601\uFE0F",
+  feather: "\u{1FAB6}", wing: "\u{1FAB6}",
+  pill: "\u{1F48A}", bandage: "\u{1FA79}", medicine: "\u{1F48A}",
+  trap: "\u{1FAA4}", cage: "\u{1FAA4}",
+  coin: "\u{1FA99}", token: "\u{1F3B2}", dice: "\u{1F3B2}",
+  orb: "\u{1F52E}", sphere: "\u{1F52E}",
+  spear: "\u{1F531}", trident: "\u{1F531}",
+  telescope: "\u{1F52D}", magnifier: "\u{1F50D}", glass: "\u{1F50D}",
+  paw: "\u{1F43E}", claw: "\u{1F43E}",
+  brush: "\u{1F58C}\uFE0F", paint: "\u{1F3A8}", palette: "\u{1F3A8}",
+  anchor: "\u2693", wheel: "\u2638\uFE0F",
+  gear: "\u2699\uFE0F", tool: "\u{1F6E0}\uFE0F",
+  mask: "\u{1F3AD}", cloak: "\u{1F9E5}", cape: "\u{1F9E5}",
+  scale: "\u2696\uFE0F", balance: "\u2696\uFE0F",
+  emerald: "\u{1F7E2}", ruby: "\u{1F534}"
+};
+const FALLBACK_EMOJI = "\u{1F4E6}";
+
+function getItemEmoji(text) {
+  const lower = text.toLowerCase().replace(/[^a-z\s]/g, "");
+  const words = lower.split(/\s+/);
+  for (const word of words) {
+    if (EMOJI_MAP[word]) return EMOJI_MAP[word];
+  }
+  for (const [key, emoji] of Object.entries(EMOJI_MAP)) {
+    if (lower.includes(key)) return emoji;
+  }
+  return FALLBACK_EMOJI;
+}
+
+function parseInventoryInput(raw) {
+  if (!raw || !raw.trim()) return null;
+  const trimmed = raw.trim();
+  const match = trimmed.match(/^(.+?)\s+(\d+)$/);
+  if (match) {
+    return { text: match[1].trim(), count: parseInt(match[2], 10) };
+  }
+  return { text: trimmed, count: null };
+}
+
+// --- Hashing ---
+async function hashPassword(pw) {
+  const enc = new TextEncoder();
+  const buf = await crypto.subtle.digest("SHA-256", enc.encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+// --- Default profile data ---
+function defaultProfile() {
+  return {
+    level: null,
+    tokens: null,
+    boosterPoints: null,
+    currentHP: 100,
+    maxHP: 100,
+    meleeWeapon: { name: "", rarity: "", exclusiveNum: "", damage: "", attackSpeed: "", range: "", specialities: "", enchantments: "" },
+    defence: { name: "", rarity: "", exclusiveNum: "", defenceLevel: "", durability: "", enchantments: "" },
+    rangedWeapon: { name: "", rarity: "", exclusiveNum: "", projectileSpeed: "", specialities: "", reload: "", enchantments: "" },
+    armour: { name: "", rarity: "", exclusiveNum: "", defenceLevel: "", specialities: "", enchantments: "" },
+    artifact: { name: "", rarity: "", exclusiveNum: "", level: "", duration: "", reload: "", effect: "", enchantments: "" },
+    transportation: { name: "", rarity: "", exclusiveNum: "", currentHP: "", maxHP: "", weapons: "", enchantments: "" },
+    pets: [],
+    extensions: [],
+    accessories: { necklace: "", bracelet: "", ring: "" },
+    gems: [],
+    arrows: [],
+    spells: [],
+    inventory: new Array(32).fill(""),
+    abilities: []
+  };
+}
+
+// --- Screens ---
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+// ============================================
+// AUTH
+// ============================================
+const authForm = document.getElementById("auth-form");
+const authError = document.getElementById("auth-error");
+const authSubmitBtn = document.getElementById("auth-submit-btn");
+let authMode = "login"; // "login" or "register"
+
+document.querySelectorAll(".auth-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".auth-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    authMode = tab.dataset.tab;
+    authSubmitBtn.textContent = authMode === "login" ? "Log In" : "Register";
+    authError.textContent = "";
+  });
+});
+
+authForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  authError.textContent = "";
+  const username = document.getElementById("username-input").value.trim();
+  const password = document.getElementById("password-input").value;
+
+  if (!username || !password) {
+    authError.textContent = "Please fill in both fields.";
+    return;
+  }
+
+  const pwHash = await hashPassword(password);
+
+  try {
+    if (authMode === "register") {
+      // Check if username exists
+      const userDoc = await db.collection("users").doc(username).get();
+      if (userDoc.exists) {
+        authError.textContent = "Username already taken.";
+        return;
+      }
+      // Check if password hash already used
+      const pwCheck = await db.collection("users").where("passwordHash", "==", pwHash).get();
+      if (!pwCheck.empty) {
+        authError.textContent = "That password is already in use. Choose a different one.";
+        return;
+      }
+      // Create user
+      await db.collection("users").doc(username).set({
+        passwordHash: pwHash,
+        ...defaultProfile()
+      });
+      currentUser = username;
+      onLogin();
+    } else {
+      // Login
+      const userDoc = await db.collection("users").doc(username).get();
+      if (!userDoc.exists) {
+        authError.textContent = "User not found.";
+        return;
+      }
+      if (userDoc.data().passwordHash !== pwHash) {
+        authError.textContent = "Incorrect password.";
+        return;
+      }
+      currentUser = username;
+      onLogin();
+    }
+  } catch (err) {
+    authError.textContent = "Error: " + err.message;
+  }
+});
+
+function onLogin() {
+  viewingUser = null;
+  document.getElementById("current-user-display").textContent = currentUser;
+  showScreen("dashboard-screen");
+  loadUserList();
+  loadSheet(currentUser, true);
+}
+
+// Logout
+document.getElementById("logout-btn").addEventListener("click", () => {
+  currentUser = null;
+  viewingUser = null;
+  document.getElementById("username-input").value = "";
+  document.getElementById("password-input").value = "";
+  authError.textContent = "";
+  showScreen("auth-screen");
+});
+
+// ============================================
+// USER LIST
+// ============================================
+async function loadUserList() {
+  const snapshot = await db.collection("users").get();
+  const list = document.getElementById("user-list");
+  const searchInput = document.getElementById("user-search");
+  const users = [];
+
+  snapshot.forEach(doc => users.push(doc.id));
+  users.sort((a, b) => a.localeCompare(b));
+
+  function renderList(filter) {
+    list.innerHTML = "";
+    const filtered = filter
+      ? users.filter(u => u.toLowerCase().includes(filter.toLowerCase()))
+      : users;
+    filtered.forEach(u => {
+      const li = document.createElement("li");
+      li.textContent = u;
+      if (u === currentUser) li.textContent += " (you)";
+      if ((viewingUser || currentUser) === u) li.classList.add("active");
+      li.addEventListener("click", () => {
+        if (u === currentUser) {
+          viewingUser = null;
+          loadSheet(currentUser, true);
+        } else {
+          viewingUser = u;
+          loadSheet(u, false);
+        }
+        list.querySelectorAll("li").forEach(l => l.classList.remove("active"));
+        li.classList.add("active");
+      });
+      list.appendChild(li);
+    });
+  }
+
+  renderList("");
+  searchInput.addEventListener("input", () => renderList(searchInput.value));
+}
+
+// ============================================
+// SHEET RENDERING
+// ============================================
+async function loadSheet(username, editable) {
+  const doc = await db.collection("users").doc(username).get();
+  if (!doc.exists) return;
+  const data = doc.data();
+  const sheet = document.getElementById("status-sheet");
+  const banner = document.getElementById("viewing-banner");
+
+  // Toggle read-only
+  if (editable) {
+    sheet.classList.remove("read-only");
+    banner.classList.add("hidden");
+  } else {
+    sheet.classList.add("read-only");
+    banner.classList.remove("hidden");
+    document.getElementById("viewing-username").textContent = username;
+  }
+
+  // Header
+  document.getElementById("sheet-username").textContent = username;
+  document.getElementById("level-input").value = data.level != null ? data.level : "";
+  document.getElementById("tokens-input").value = data.tokens != null ? data.tokens : "";
+  document.getElementById("booster-input").value = data.boosterPoints != null ? data.boosterPoints : "";
+
+  // Health
+  const curHP = data.currentHP ?? 100;
+  const maxHP = data.maxHP ?? 100;
+  document.getElementById("hp-current").value = curHP;
+  document.getElementById("hp-max").value = maxHP;
+  updateHealthBar(curHP, maxHP);
+
+  // Equipment cards
+  const categories = ["meleeWeapon", "defence", "rangedWeapon", "armour", "artifact", "transportation"];
+  categories.forEach(cat => {
+    const card = document.querySelector(`.equip-card[data-category="${cat}"]`);
+    const catData = data[cat] || {};
+
+    // Remove old rarity classes
+    card.className = card.className.replace(/rarity-\S+/g, "").trim() + " equip-card";
+    if (catData.rarity) {
+      card.classList.add("rarity-" + catData.rarity);
+    }
+
+    card.querySelectorAll("[data-field]").forEach(el => {
+      const field = el.dataset.field;
+      const val = catData[field] || "";
+      if (el.tagName === "SELECT") {
+        el.value = val;
+      } else if (el.tagName === "TEXTAREA") {
+        el.value = val;
+      } else {
+        el.value = val;
+      }
+    });
+
+    // Show/hide exclusive number
+    const exclSelect = card.querySelector(".exclusive-num");
+    if (catData.rarity === "exclusive") {
+      exclSelect.classList.remove("hidden");
+    } else {
+      exclSelect.classList.add("hidden");
+    }
+  });
+
+  // Lists
+  renderPets(data.pets || []);
+  renderExtensions(data.extensions || []);
+  renderAccessories(data.accessories || { necklace: "", bracelet: "", ring: "" });
+  renderGems(data.gems || []);
+  renderArrows(data.arrows || []);
+  renderSpells(data.spells || []);
+
+  // Inventory
+  renderInventory(data.inventory || new Array(32).fill(""));
+
+  // Abilities
+  renderAbilities(data.abilities || []);
+}
+
+function updateHealthBar(current, max) {
+  const pct = max > 0 ? Math.min(100, Math.max(0, (current / max) * 100)) : 0;
+  const fill = document.getElementById("health-bar-fill");
+  fill.style.width = pct + "%";
+  if (pct > 50) fill.style.background = "var(--health-high)";
+  else if (pct > 25) fill.style.background = "var(--health-mid)";
+  else fill.style.background = "var(--health-low)";
+}
+
+// ============================================
+// SAVE HELPERS
+// ============================================
+function saveField(field, value) {
+  if (!currentUser || viewingUser) return;
+  db.collection("users").doc(currentUser).update({ [field]: value });
+}
+
+function saveNestedField(category, field, value) {
+  if (!currentUser || viewingUser) return;
+  db.collection("users").doc(currentUser).update({
+    [`${category}.${field}`]: value
+  });
+}
+
+// --- Auto-save listeners ---
+
+// Level, tokens, booster
+document.getElementById("level-input").addEventListener("change", function () {
+  const v = this.value === "" ? null : parseInt(this.value, 10);
+  saveField("level", isNaN(v) ? null : v);
+});
+document.getElementById("tokens-input").addEventListener("change", function () {
+  const v = this.value === "" ? null : parseInt(this.value, 10);
+  saveField("tokens", isNaN(v) ? null : v);
+});
+document.getElementById("booster-input").addEventListener("change", function () {
+  const v = this.value === "" ? null : parseInt(this.value, 10);
+  saveField("boosterPoints", isNaN(v) ? null : v);
+});
+
+// HP
+document.getElementById("hp-current").addEventListener("change", function () {
+  const v = parseInt(this.value, 10);
+  if (!isNaN(v) && v >= 0) {
+    saveField("currentHP", v);
+    updateHealthBar(v, parseInt(document.getElementById("hp-max").value, 10) || 100);
+  }
+});
+document.getElementById("hp-max").addEventListener("change", function () {
+  const v = parseInt(this.value, 10);
+  if (!isNaN(v) && v >= 1) {
+    saveField("maxHP", v);
+    updateHealthBar(parseInt(document.getElementById("hp-current").value, 10) || 0, v);
+  }
+});
+
+// Equipment cards - auto-save on change/blur
+document.querySelectorAll(".equip-card").forEach(card => {
+  const cat = card.dataset.category;
+
+  card.querySelectorAll("[data-field]").forEach(el => {
+    const field = el.dataset.field;
+    const event = el.tagName === "SELECT" ? "change" : "blur";
+
+    el.addEventListener(event, () => {
+      if (!currentUser || viewingUser) return;
+      saveNestedField(cat, field, el.value);
+
+      // Handle rarity change
+      if (field === "rarity") {
+        card.className = card.className.replace(/rarity-\S+/g, "").trim();
+        if (el.value) card.classList.add("rarity-" + el.value);
+        const exclSelect = card.querySelector(".exclusive-num");
+        if (el.value === "exclusive") {
+          exclSelect.classList.remove("hidden");
+        } else {
+          exclSelect.classList.add("hidden");
+          exclSelect.value = "";
+          saveNestedField(cat, "exclusiveNum", "");
+        }
+      }
+    });
+  });
+});
+
+// Accessories
+document.querySelectorAll(".accessory-slot input").forEach(inp => {
+  inp.addEventListener("blur", () => {
+    if (!currentUser || viewingUser) return;
+    saveNestedField("accessories", inp.dataset.field, inp.value);
+  });
+});
+
+// ============================================
+// LIST RENDERING & MANAGEMENT
+// ============================================
+
+// --- Pets ---
+function renderPets(pets) {
+  const container = document.getElementById("pets-list");
+  container.innerHTML = "";
+  pets.forEach((name, i) => {
+    const div = document.createElement("div");
+    div.className = "list-item";
+    div.innerHTML = `<span>${escapeHtml(name)}</span><button class="btn-remove" data-index="${i}">&times;</button>`;
+    div.querySelector(".btn-remove").addEventListener("click", () => removePet(i));
+    container.appendChild(div);
+  });
+}
+
+document.getElementById("add-pet-btn").addEventListener("click", async () => {
+  const input = document.getElementById("pet-name-input");
+  const name = input.value.trim();
+  if (!name || !currentUser || viewingUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const pets = doc.data().pets || [];
+  pets.push(name);
+  await db.collection("users").doc(currentUser).update({ pets });
+  input.value = "";
+  renderPets(pets);
+});
+
+async function removePet(index) {
+  if (!currentUser || viewingUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const pets = doc.data().pets || [];
+  pets.splice(index, 1);
+  await db.collection("users").doc(currentUser).update({ pets });
+  renderPets(pets);
+}
+
+// --- Extensions ---
+function renderExtensions(extensions) {
+  const container = document.getElementById("extensions-list");
+  container.innerHTML = "";
+  extensions.forEach((ext, i) => {
+    const div = document.createElement("div");
+    div.className = "list-item";
+    div.innerHTML = `<div class="list-item-info"><span>${escapeHtml(ext.name)}</span><span class="list-item-sub">for ${escapeHtml(ext.appliedTo)}</span></div><button class="btn-remove" data-index="${i}">&times;</button>`;
+    div.querySelector(".btn-remove").addEventListener("click", () => removeExtension(i));
+    container.appendChild(div);
+  });
+}
+
+document.getElementById("add-ext-btn").addEventListener("click", async () => {
+  const nameInput = document.getElementById("ext-name-input");
+  const forInput = document.getElementById("ext-for-input");
+  const name = nameInput.value.trim();
+  const appliedTo = forInput.value.trim();
+  if (!name || !appliedTo || !currentUser || viewingUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const extensions = doc.data().extensions || [];
+  extensions.push({ name, appliedTo });
+  await db.collection("users").doc(currentUser).update({ extensions });
+  nameInput.value = "";
+  forInput.value = "";
+  renderExtensions(extensions);
+});
+
+async function removeExtension(index) {
+  if (!currentUser || viewingUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const extensions = doc.data().extensions || [];
+  extensions.splice(index, 1);
+  await db.collection("users").doc(currentUser).update({ extensions });
+  renderExtensions(extensions);
+}
+
+// --- Accessories (inline save via blur, already handled above) ---
+function renderAccessories(acc) {
+  document.getElementById("acc-necklace").value = acc.necklace || "";
+  document.getElementById("acc-bracelet").value = acc.bracelet || "";
+  document.getElementById("acc-ring").value = acc.ring || "";
+}
+
+// --- Gems ---
+function renderGems(gems) {
+  const container = document.getElementById("gems-list");
+  container.innerHTML = "";
+  gems.forEach((name, i) => {
+    const div = document.createElement("div");
+    div.className = "list-item";
+    div.innerHTML = `<span>${escapeHtml(name)}</span><button class="btn-remove" data-index="${i}">&times;</button>`;
+    div.querySelector(".btn-remove").addEventListener("click", () => removeGem(i));
+    container.appendChild(div);
+  });
+}
+
+document.getElementById("add-gem-btn").addEventListener("click", async () => {
+  const input = document.getElementById("gem-name-input");
+  const name = input.value.trim();
+  if (!name || !currentUser || viewingUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const gems = doc.data().gems || [];
+  gems.push(name);
+  await db.collection("users").doc(currentUser).update({ gems });
+  input.value = "";
+  renderGems(gems);
+});
+
+async function removeGem(index) {
+  if (!currentUser || viewingUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const gems = doc.data().gems || [];
+  gems.splice(index, 1);
+  await db.collection("users").doc(currentUser).update({ gems });
+  renderGems(gems);
+}
+
+// --- Arrows ---
+function renderArrows(arrows) {
+  const container = document.getElementById("arrows-list");
+  container.innerHTML = "";
+  arrows.forEach((arr, i) => {
+    const div = document.createElement("div");
+    div.className = "list-item";
+    div.innerHTML = `<div class="list-item-info"><span>${escapeHtml(arr.type)}</span><span class="list-item-sub">&times;${arr.count}</span></div><button class="btn-remove" data-index="${i}">&times;</button>`;
+    div.querySelector(".btn-remove").addEventListener("click", () => removeArrow(i));
+    container.appendChild(div);
+  });
+}
+
+document.getElementById("add-arrow-btn").addEventListener("click", async () => {
+  const nameInput = document.getElementById("arrow-name-input");
+  const countInput = document.getElementById("arrow-count-input");
+  const type = nameInput.value.trim();
+  const count = parseInt(countInput.value, 10);
+  if (!type || isNaN(count) || count < 0 || !currentUser || viewingUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const arrows = doc.data().arrows || [];
+  arrows.push({ type, count });
+  await db.collection("users").doc(currentUser).update({ arrows });
+  nameInput.value = "";
+  countInput.value = "";
+  renderArrows(arrows);
+});
+
+async function removeArrow(index) {
+  if (!currentUser || viewingUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const arrows = doc.data().arrows || [];
+  arrows.splice(index, 1);
+  await db.collection("users").doc(currentUser).update({ arrows });
+  renderArrows(arrows);
+}
+
+// --- Spells ---
+function renderSpells(spells) {
+  const container = document.getElementById("spells-list");
+  container.innerHTML = "";
+  spells.forEach((spell, i) => {
+    const div = document.createElement("div");
+    div.className = "list-item";
+    div.innerHTML = `<div class="list-item-info"><span>${escapeHtml(spell.name)}</span><span class="list-item-sub">${escapeHtml(spell.level)}</span></div><button class="btn-remove" data-index="${i}">&times;</button>`;
+    div.querySelector(".btn-remove").addEventListener("click", () => removeSpell(i));
+    container.appendChild(div);
+  });
+}
+
+document.getElementById("add-spell-btn").addEventListener("click", async () => {
+  const nameInput = document.getElementById("spell-name-input");
+  const levelInput = document.getElementById("spell-level-input");
+  const name = nameInput.value.trim();
+  const level = levelInput.value;
+  if (!name || !level || !currentUser || viewingUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const spells = doc.data().spells || [];
+  spells.push({ name, level });
+  await db.collection("users").doc(currentUser).update({ spells });
+  nameInput.value = "";
+  levelInput.value = "";
+  renderSpells(spells);
+});
+
+async function removeSpell(index) {
+  if (!currentUser || viewingUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const spells = doc.data().spells || [];
+  spells.splice(index, 1);
+  await db.collection("users").doc(currentUser).update({ spells });
+  renderSpells(spells);
+}
+
+// ============================================
+// INVENTORY
+// ============================================
+function renderInventory(inventory) {
+  const grid = document.getElementById("inventory-grid");
+  grid.innerHTML = "";
+  for (let i = 0; i < 32; i++) {
+    const cell = document.createElement("div");
+    cell.className = "inv-cell";
+    cell.dataset.index = i;
+    const raw = inventory[i] || "";
+    if (raw) {
+      const parsed = parseInventoryInput(raw);
+      if (parsed) {
+        const emoji = getItemEmoji(parsed.text);
+        cell.textContent = emoji;
+        if (parsed.count !== null) {
+          const countSpan = document.createElement("span");
+          countSpan.className = "inv-count";
+          countSpan.textContent = parsed.count;
+          cell.appendChild(countSpan);
+        }
+      }
+    }
+    cell.addEventListener("click", () => openInventoryModal(i, raw));
+    grid.appendChild(cell);
+  }
+}
+
+function openInventoryModal(index, currentValue) {
+  if (viewingUser) return; // read-only
+  inventoryEditIndex = index;
+  const modal = document.getElementById("inventory-modal");
+  const input = document.getElementById("inventory-item-input");
+  input.value = currentValue || "";
+  modal.classList.remove("hidden");
+  input.focus();
+}
+
+document.getElementById("inv-cancel-btn").addEventListener("click", () => {
+  document.getElementById("inventory-modal").classList.add("hidden");
+});
+
+document.getElementById("inv-clear-btn").addEventListener("click", async () => {
+  if (inventoryEditIndex === null || !currentUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const inventory = doc.data().inventory || new Array(32).fill("");
+  inventory[inventoryEditIndex] = "";
+  await db.collection("users").doc(currentUser).update({ inventory });
+  renderInventory(inventory);
+  document.getElementById("inventory-modal").classList.add("hidden");
+});
+
+document.getElementById("inv-save-btn").addEventListener("click", async () => {
+  if (inventoryEditIndex === null || !currentUser) return;
+  const input = document.getElementById("inventory-item-input");
+  const value = input.value.trim();
+  const doc = await db.collection("users").doc(currentUser).get();
+  const inventory = doc.data().inventory || new Array(32).fill("");
+  inventory[inventoryEditIndex] = value;
+  await db.collection("users").doc(currentUser).update({ inventory });
+  renderInventory(inventory);
+  document.getElementById("inventory-modal").classList.add("hidden");
+});
+
+// Enter key in modal
+document.getElementById("inventory-item-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") document.getElementById("inv-save-btn").click();
+  if (e.key === "Escape") document.getElementById("inv-cancel-btn").click();
+});
+
+// ============================================
+// ABILITIES
+// ============================================
+function renderAbilities(abilities) {
+  const container = document.getElementById("abilities-list");
+  const countEl = document.getElementById("ability-count");
+  const addArea = document.getElementById("ability-add-area");
+  container.innerHTML = "";
+  countEl.textContent = `(${abilities.length}/5)`;
+
+  abilities.forEach((ab, i) => {
+    const div = document.createElement("div");
+    div.className = "list-item";
+    div.innerHTML = `<div class="list-item-info"><span>${escapeHtml(ab.name)}</span><span class="list-item-sub">${escapeHtml(ab.level)}</span></div><button class="btn-remove" data-index="${i}">&times;</button>`;
+    div.querySelector(".btn-remove").addEventListener("click", () => removeAbility(i));
+    container.appendChild(div);
+  });
+
+  if (abilities.length >= 5 && !viewingUser) {
+    addArea.style.display = "none";
+  } else if (!viewingUser) {
+    addArea.style.display = "";
+  }
+}
+
+document.getElementById("add-ability-btn").addEventListener("click", async () => {
+  const nameInput = document.getElementById("ability-name-input");
+  const levelInput = document.getElementById("ability-level-input");
+  const name = nameInput.value.trim();
+  const level = levelInput.value;
+  if (!name || !level || !currentUser || viewingUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const abilities = doc.data().abilities || [];
+  if (abilities.length >= 5) return;
+  abilities.push({ name, level });
+  await db.collection("users").doc(currentUser).update({ abilities });
+  nameInput.value = "";
+  levelInput.value = "";
+  renderAbilities(abilities);
+});
+
+async function removeAbility(index) {
+  if (!currentUser || viewingUser) return;
+  const doc = await db.collection("users").doc(currentUser).get();
+  const abilities = doc.data().abilities || [];
+  abilities.splice(index, 1);
+  await db.collection("users").doc(currentUser).update({ abilities });
+  renderAbilities(abilities);
+}
+
+// Back to own sheet
+document.getElementById("back-to-own").addEventListener("click", () => {
+  viewingUser = null;
+  loadSheet(currentUser, true);
+  // Update active state in user list
+  document.querySelectorAll("#user-list li").forEach(li => {
+    li.classList.toggle("active", li.textContent.includes(currentUser));
+  });
+});
+
+// --- Utility ---
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str || "";
+  return div.innerHTML;
+}
