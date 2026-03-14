@@ -1490,9 +1490,9 @@ function buildNewsCard(id, data) {
 
   card.appendChild(header);
 
-  if (data.imageBase64) {
+  if (data.imageUrl) {
     const img = document.createElement("img");
-    img.src = data.imageBase64;
+    img.src = data.imageUrl;
     img.alt = data.title || "";
     img.style.maxWidth = "100%";
     img.style.maxHeight = "400px";
@@ -1525,8 +1525,8 @@ function openNewsModal(id = null, data = null) {
   document.getElementById("news-post-desc").value = data ? (data.description || "") : "";
   document.getElementById("news-post-image").value = "";
   const preview = document.getElementById("news-image-preview");
-  if (data && data.imageBase64) {
-    preview.innerHTML = `<img src="${data.imageBase64}" alt="current image" style="max-width: 100%; max-height: 300px;">`;
+  if (data && data.imageUrl) {
+    preview.innerHTML = `<img src="${data.imageUrl}" alt="current image" style="max-width: 100%; max-height: 300px;">`;
   } else {
     preview.innerHTML = "";
   }
@@ -1543,14 +1543,9 @@ document.getElementById("news-post-image").addEventListener("change", (e) => {
   newsImageFile = e.target.files[0] || null;
   const preview = document.getElementById("news-image-preview");
   if (newsImageFile) {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      newsImageBase64 = event.target.result;
-      preview.innerHTML = `<img src="${newsImageBase64}" alt="preview" style="max-width: 100%; max-height: 300px;">`;
-    };
-    reader.readAsDataURL(newsImageFile);
+    const url = URL.createObjectURL(newsImageFile);
+    preview.innerHTML = `<img src="${url}" alt="preview" style="max-width: 100%; max-height: 300px;">`;
   } else {
-    newsImageBase64 = null;
     preview.innerHTML = "";
   }
 });
@@ -1566,22 +1561,25 @@ document.getElementById("news-modal-save").addEventListener("click", async () =>
   saveBtn.textContent = "Saving...";
 
   try {
-    let imageBase64 = null;
+    let imageUrl = null;
     // If editing, keep existing image unless new one uploaded
     if (editingNewsId) {
       const existing = await db.collection("news").doc(editingNewsId).get();
-      imageBase64 = existing.data().imageBase64 || null;
+      imageUrl = existing.data().imageUrl || null;
     }
 
-    // Use base64 image if provided
-    if (newsImageBase64) {
-      imageBase64 = newsImageBase64;
+    // Upload new image to Firebase Storage if provided
+    if (newsImageFile) {
+      const ext = newsImageFile.name.split(".").pop();
+      const ref = storage.ref(`news/${Date.now()}.${ext}`);
+      await ref.put(newsImageFile);
+      imageUrl = await ref.getDownloadURL();
     }
 
     const postData = {
       title,
       description: desc,
-      imageBase64: imageBase64 || null,
+      imageUrl: imageUrl || null,
       createdAt: editingNewsId
         ? (await db.collection("news").doc(editingNewsId).get()).data().createdAt
         : firebase.firestore.Timestamp.now()

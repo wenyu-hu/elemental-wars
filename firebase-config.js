@@ -2,13 +2,12 @@
 // FIREBASE CONFIGURATION
 // ============================================
 const firebaseConfig = {
-  apiKey: "AIzaSyAot_QCduDwR05B1Ob395n0_BxufPZQgto",
-  authDomain: "elemental-wars-d998b.firebaseapp.com",
-  projectId: "elemental-wars-d998b",
-  storageBucket: "elemental-wars-d998b.firebasestorage.app",
-  messagingSenderId: "1031739683039",
-  appId: "1:1031739683039:web:7d4099f574ddf4688bf96a",
-  measurementId: "G-J963TL0NT1"
+  apiKey: "AIzaSyD7pSNqXFze26ToYtq6Lcz7l7LYiau1KUw",
+  authDomain: "elemental-wars-3b131.firebaseapp.com",
+  projectId: "elemental-wars-3b131",
+  storageBucket: "elemental-wars-3b131.firebasestorage.app",
+  messagingSenderId: "565189969958",
+  appId: "1:565189969958:web:8a9ea8da6c8c035e307ee7"
 };
 
 firebase.initializeApp(firebaseConfig);
