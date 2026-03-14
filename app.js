@@ -1255,32 +1255,44 @@ document.getElementById("mega-gem-prime-input").addEventListener("change", funct
   }
 });
 
-document.getElementById("add-mega-gem-btn").addEventListener("click", async () => {
-  if (!currentUser || viewingUser) return;
-  const typeInput = document.getElementById("mega-gem-type-input");
-  const qtyInput = document.getElementById("mega-gem-qty-input");
-  const primeInput = document.getElementById("mega-gem-prime-input");
-  const outlineInput = document.getElementById("mega-gem-outline-input");
+const megaGemBtn = document.getElementById("add-mega-gem-btn");
+if (megaGemBtn) {
+  megaGemBtn.addEventListener("click", async () => {
+    try {
+      if (!currentUser || viewingUser) return;
+      const typeInput = document.getElementById("mega-gem-type-input");
+      const qtyInput = document.getElementById("mega-gem-qty-input");
+      const primeInput = document.getElementById("mega-gem-prime-input");
+      const outlineInput = document.getElementById("mega-gem-outline-input");
 
-  const type = typeInput.value;
-  const quantity = parseIntOrInf(qtyInput.value);
-  const prime = primeInput.checked;
-  const outline = outlineInput.value;
+      const type = typeInput.value;
+      const qtyVal = qtyInput.value.trim();
+      const quantity = qtyVal === "∞" ? "∞" : parseInt(qtyVal, 10);
+      const prime = primeInput.checked;
+      const outline = outlineInput.value;
 
-  if (!type || quantity === null) return;
-  if (prime && !outline) return; // Must pick outline if prime
+      if (!type) { alert("Please select a mega gem type."); return; }
+      if (qtyVal === "" || (quantity !== "∞" && (isNaN(quantity) || quantity < 1))) { alert("Please enter a valid quantity."); return; }
+      if (prime && !outline) { alert("Prime gems require an outline colour."); return; }
 
-  const doc = await db.collection("users").doc(currentUser).get();
-  const megaGems = doc.data().megaGems || [];
-  megaGems.push({ type, quantity, prime, outline: prime ? outline : "" });
-  await db.collection("users").doc(currentUser).update({ megaGems });
-  typeInput.value = "";
-  qtyInput.value = "";
-  primeInput.checked = false;
-  outlineInput.classList.add("hidden");
-  outlineInput.value = "";
-  renderMegaGems(megaGems);
-});
+      const doc = await db.collection("users").doc(currentUser).get();
+      const megaGems = doc.data().megaGems || [];
+      megaGems.push({ type, quantity, prime, outline: prime ? outline : "" });
+      await db.collection("users").doc(currentUser).update({ megaGems });
+      typeInput.value = "";
+      qtyInput.value = "";
+      primeInput.checked = false;
+      outlineInput.classList.add("hidden");
+      outlineInput.value = "";
+      renderMegaGems(megaGems);
+    } catch (err) {
+      console.error("Mega gem add error:", err);
+      alert("Error adding mega gem: " + err.message);
+    }
+  });
+} else {
+  console.error("add-mega-gem-btn not found in DOM!");
+}
 
 async function removeMegaGem(index) {
   if (!currentUser || viewingUser) return;

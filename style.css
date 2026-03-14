@@ -743,6 +743,7 @@ input[type="number"] { -moz-appearance: textfield; }
 
 .accessory-slot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -802,9 +803,9 @@ input[type="number"] { -moz-appearance: textfield; }
 
 /* Accessory effect textarea (matches specialities style) */
 .acc-effect-textarea {
-  width: 100%;
-  min-height: 40px;
-  margin-top: 4px;
+  flex-basis: 100%;
+  min-height: 48px;
+  margin-top: 0;
 }
 
 /* Weapons list in transportation */
