@@ -2,6 +2,9 @@
    ELEMENTAL WARS - APP LOGIC
    ============================================ */
 
+// --- Admin Configuration ---
+const ADMIN_USERNAME = "Wenyu";
+
 // --- State ---
 let currentUser = null;   // logged-in username
 let viewingUser = null;    // whose sheet is displayed (null = own)
@@ -1421,9 +1424,10 @@ let isAdmin = false;
 let editingNewsId = null;
 let pendingDeleteId = null;
 let newsImageFile = null;
+let newsImageBase64 = null;
 
 function checkAdmin() {
-  isAdmin = currentUser === "Wenyu";
+  isAdmin = currentUser === ADMIN_USERNAME;
   document.getElementById("add-news-btn").classList.toggle("hidden", !isAdmin);
 }
 
@@ -1486,10 +1490,13 @@ function buildNewsCard(id, data) {
 
   card.appendChild(header);
 
-  if (data.imageUrl) {
+  if (data.imageBase64) {
     const img = document.createElement("img");
-    img.src = data.imageUrl;
+    img.src = data.imageBase64;
     img.alt = data.title || "";
+    img.style.maxWidth = "100%";
+    img.style.maxHeight = "400px";
+    img.style.objectFit = "cover";
     card.appendChild(img);
   }
 
@@ -1512,13 +1519,14 @@ function buildNewsCard(id, data) {
 function openNewsModal(id = null, data = null) {
   editingNewsId = id;
   newsImageFile = null;
+  newsImageBase64 = null;
   document.getElementById("news-modal-title").textContent = id ? "Edit Post" : "New Post";
   document.getElementById("news-post-title").value = data ? (data.title || "") : "";
   document.getElementById("news-post-desc").value = data ? (data.description || "") : "";
   document.getElementById("news-post-image").value = "";
   const preview = document.getElementById("news-image-preview");
-  if (data && data.imageUrl) {
-    preview.innerHTML = `<img src="${escapeHtml(data.imageUrl)}" alt="current image">`;
+  if (data && data.imageBase64) {
+    preview.innerHTML = `<img src="${data.imageBase64}" alt="current image" style="max-width: 100%; max-height: 300px;">`;
   } else {
     preview.innerHTML = "";
   }
@@ -1535,9 +1543,14 @@ document.getElementById("news-post-image").addEventListener("change", (e) => {
   newsImageFile = e.target.files[0] || null;
   const preview = document.getElementById("news-image-preview");
   if (newsImageFile) {
-    const url = URL.createObjectURL(newsImageFile);
-    preview.innerHTML = `<img src="${url}" alt="preview">`;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      newsImageBase64 = event.target.result;
+      preview.innerHTML = `<img src="${newsImageBase64}" alt="preview" style="max-width: 100%; max-height: 300px;">`;
+    };
+    reader.readAsDataURL(newsImageFile);
   } else {
+    newsImageBase64 = null;
     preview.innerHTML = "";
   }
 });
@@ -1553,25 +1566,22 @@ document.getElementById("news-modal-save").addEventListener("click", async () =>
   saveBtn.textContent = "Saving...";
 
   try {
-    let imageUrl = (editingNewsId ? null : null);
+    let imageBase64 = null;
     // If editing, keep existing image unless new one uploaded
     if (editingNewsId) {
       const existing = await db.collection("news").doc(editingNewsId).get();
-      imageUrl = existing.data().imageUrl || null;
+      imageBase64 = existing.data().imageBase64 || null;
     }
 
-    // Upload new image if provided
-    if (newsImageFile) {
-      const ext = newsImageFile.name.split(".").pop();
-      const ref = storage.ref(`news/${Date.now()}.${ext}`);
-      await ref.put(newsImageFile);
-      imageUrl = await ref.getDownloadURL();
+    // Use base64 image if provided
+    if (newsImageBase64) {
+      imageBase64 = newsImageBase64;
     }
 
     const postData = {
       title,
       description: desc,
-      imageUrl: imageUrl || null,
+      imageBase64: imageBase64 || null,
       createdAt: editingNewsId
         ? (await db.collection("news").doc(editingNewsId).get()).data().createdAt
         : firebase.firestore.Timestamp.now()
