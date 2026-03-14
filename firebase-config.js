@@ -3,7 +3,7 @@
 // ============================================
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyB8uBFntHqZS-eB6mjjPkeFr2PeTHB0q4Q",
+  apiKey: "AIzaSyAot_QCduDwR05B1Ob395n0_BxufPZQgto",
   authDomain: "elemental-wars-d998b.firebaseapp.com",
   projectId: "elemental-wars-d998b",
   storageBucket: "elemental-wars-d998b.firebasestorage.app",
