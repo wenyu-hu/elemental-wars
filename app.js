@@ -844,7 +844,8 @@ function renderTransportWeapons(weapons) {
   weapons.forEach((w, i) => {
     const div = document.createElement("div");
     div.className = "list-item";
-    div.innerHTML = `<div class="list-item-info"><span>${escapeHtml(w.name)}</span><span class="list-item-sub">Ammo: ${w.ammo}</span></div><button class="btn-remove" data-index="${i}">&times;</button>`;
+    const ammoDisplay = w.maxAmmo != null ? `${w.ammo}/${w.maxAmmo}` : `${w.ammo}`;
+    div.innerHTML = `<div class="list-item-info"><span>${escapeHtml(w.name)}</span><span class="list-item-sub">Ammo: ${ammoDisplay}</span></div><button class="btn-remove" data-index="${i}">&times;</button>`;
     div.querySelector(".btn-remove").addEventListener("click", () => removeTransportWeapon(i));
     container.appendChild(div);
   });
@@ -855,17 +856,20 @@ document.querySelector(".transport-weapon-add-btn").addEventListener("click", as
   const card = document.querySelector('.equip-card[data-category="transportation"]');
   const nameInput = card.querySelector(".transport-weapon-name-input");
   const ammoInput = card.querySelector(".transport-weapon-ammo-input");
+  const maxAmmoInput = card.querySelector(".transport-weapon-maxammo-input");
   const name = nameInput.value.trim();
   const ammo = parseInt(ammoInput.value, 10);
-  if (!name || isNaN(ammo) || ammo < 0) return;
+  const maxAmmo = parseInt(maxAmmoInput.value, 10);
+  if (!name || isNaN(ammo) || ammo < 0 || isNaN(maxAmmo) || maxAmmo < 1) return;
   const doc = await db.collection("users").doc(currentUser).get();
   const catData = doc.data().transportation || {};
   let weapons = catData.weapons || [];
   if (!Array.isArray(weapons)) weapons = [];
-  weapons.push({ name, ammo });
+  weapons.push({ name, ammo, maxAmmo });
   await db.collection("users").doc(currentUser).update({ "transportation.weapons": weapons });
   nameInput.value = "";
   ammoInput.value = "";
+  maxAmmoInput.value = "";
   renderTransportWeapons(weapons);
 });
 
