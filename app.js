@@ -1689,6 +1689,16 @@ function buildChatBubble(id, data) {
     wrapper.appendChild(ed);
   }
 
+  // Private tag
+  if (data.recipient && data.recipient !== "everyone") {
+    const tag = document.createElement("div");
+    tag.className = "chat-msg-private-tag";
+    tag.textContent = isOwn
+      ? `🔒 Private → ${data.recipient}`
+      : `🔒 Private`;
+    wrapper.appendChild(tag);
+  }
+
   // Timestamp
   const ts = document.createElement("div");
   ts.className = "chat-msg-timestamp";
@@ -1739,22 +1749,54 @@ function buildChatBubble(id, data) {
   return wrapper;
 }
 
+let chatUsersUnsubscribe = null;
+
 function initChat() {
   if (chatUnsubscribe) return; // already listening
   const feed = document.getElementById("chat-messages");
   feed.innerHTML = `<div class="chat-empty">Loading...</div>`;
 
+  // Populate + live-update recipient dropdown from users collection
+  if (!chatUsersUnsubscribe) {
+    chatUsersUnsubscribe = db.collection("users").onSnapshot(snap => {
+      const select = document.getElementById("chat-recipient");
+      const current = select.value;
+      select.innerHTML = `<option value="everyone">Everyone</option>`;
+      snap.forEach(doc => {
+        if (doc.id !== currentUser) {
+          const opt = document.createElement("option");
+          opt.value = doc.id;
+          opt.textContent = doc.id;
+          select.appendChild(opt);
+        }
+      });
+      // Restore previous selection if still valid
+      if ([...select.options].some(o => o.value === current)) {
+        select.value = current;
+      }
+    });
+  }
+
+  // Listen to messages, filter by visibility
   chatUnsubscribe = db.collection("chat")
     .orderBy("createdAt", "asc")
     .onSnapshot(snap => {
       feed.innerHTML = "";
-      if (snap.empty) {
-        feed.innerHTML = `<div class="chat-empty">No messages yet. Say hello!</div>`;
-        return;
-      }
+      let hasVisible = false;
       snap.forEach(doc => {
-        feed.appendChild(buildChatBubble(doc.id, doc.data()));
+        const data = doc.data();
+        // Show if: everyone message, or private between currentUser and other party
+        const isPublic = !data.recipient || data.recipient === "everyone";
+        const isForMe = data.recipient === currentUser;
+        const isMine = data.username === currentUser;
+        if (isPublic || isForMe || (isMine && data.recipient !== "everyone")) {
+          feed.appendChild(buildChatBubble(doc.id, data));
+          hasVisible = true;
+        }
       });
+      if (!hasVisible) {
+        feed.innerHTML = `<div class="chat-empty">No messages yet. Say hello!</div>`;
+      }
       feed.scrollTop = feed.scrollHeight;
     }, err => {
       feed.innerHTML = `<div class="chat-empty">Error loading chat.</div>`;
@@ -1783,9 +1825,11 @@ async function sendChatMessage() {
   const text = input.value.trim();
   if (!text || !currentUser) return;
 
+  const recipient = document.getElementById("chat-recipient").value || "everyone";
   const msgData = {
     username: currentUser,
     text,
+    recipient,
     createdAt: firebase.firestore.Timestamp.now(),
     editedAt: null,
     replyTo: replyingTo || null
@@ -1835,6 +1879,7 @@ document.getElementById("chat-edit-save").addEventListener("click", async () => 
 const _origLogout = document.getElementById("logout-btn").onclick;
 document.getElementById("logout-btn").addEventListener("click", () => {
   if (chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; }
+  if (chatUsersUnsubscribe) { chatUsersUnsubscribe(); chatUsersUnsubscribe = null; }
   replyingTo = null;
   editingMsgId = null;
 });

@@ -1506,6 +1506,13 @@ input[type="number"] { -moz-appearance: textfield; }
   padding: 0 4px;
 }
 
+.chat-msg-private-tag {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #ff69b4;
+  padding: 0 4px;
+}
+
 .chat-reply-bar {
   display: flex;
   align-items: center;
@@ -1530,6 +1537,29 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 
 .chat-reply-cancel:hover { color: var(--danger); }
+
+.chat-send-to-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-send-to-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#chat-recipient {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
 
 .chat-input-row {
   display: flex;
