@@ -1414,6 +1414,7 @@ document.querySelectorAll(".main-tab-btn").forEach(btn => {
     btn.classList.add("active");
     document.getElementById("main-tab-" + btn.dataset.tab).classList.remove("hidden");
     if (btn.dataset.tab === "news") loadNews();
+    if (btn.dataset.tab === "chat") initChat();
   });
 });
 
@@ -1632,4 +1633,208 @@ document.getElementById("news-delete-confirm").addEventListener("click", async (
   } catch (e) {
     alert("Error deleting post: " + e.message);
   }
+});
+
+// ============================================
+// CHAT
+// ============================================
+let chatUnsubscribe = null;
+let replyingTo = null;       // { id, username, text }
+let editingMsgId = null;
+
+function formatChatTimestamp(ts) {
+  if (!ts) return "";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  let h = d.getHours(), m = d.getMinutes(), ampm = "AM";
+  if (h >= 12) { ampm = "PM"; if (h > 12) h -= 12; }
+  if (h === 0) h = 12;
+  const mm = m < 10 ? "0" + m : m;
+  return `${months[d.getMonth()]} ${d.getDate()}, ${h}:${mm} ${ampm}`;
+}
+
+function buildChatBubble(id, data) {
+  const isOwn = data.username === currentUser;
+  const wrapper = document.createElement("div");
+  wrapper.className = "chat-msg " + (isOwn ? "own" : "other");
+  wrapper.dataset.id = id;
+
+  // Username
+  if (!isOwn) {
+    const uname = document.createElement("div");
+    uname.className = "chat-msg-username";
+    uname.textContent = data.username;
+    wrapper.appendChild(uname);
+  }
+
+  // Reply preview
+  if (data.replyTo) {
+    const rp = document.createElement("div");
+    rp.className = "chat-msg-reply-preview";
+    rp.textContent = `↩ ${data.replyTo.username}: ${data.replyTo.text}`;
+    wrapper.appendChild(rp);
+  }
+
+  // Bubble
+  const bubble = document.createElement("div");
+  bubble.className = "chat-msg-bubble";
+  bubble.textContent = data.text;
+  wrapper.appendChild(bubble);
+
+  // Edited label
+  if (data.editedAt) {
+    const ed = document.createElement("div");
+    ed.className = "chat-msg-edited";
+    ed.textContent = "(edited)";
+    wrapper.appendChild(ed);
+  }
+
+  // Timestamp
+  const ts = document.createElement("div");
+  ts.className = "chat-msg-timestamp";
+  ts.textContent = formatChatTimestamp(data.createdAt);
+  wrapper.appendChild(ts);
+
+  // Action buttons
+  const actions = document.createElement("div");
+  actions.className = "chat-msg-actions";
+
+  // Reply button (everyone)
+  const replyBtn = document.createElement("button");
+  replyBtn.className = "chat-msg-action-btn";
+  replyBtn.textContent = "↩ Reply";
+  replyBtn.addEventListener("click", () => {
+    replyingTo = { id, username: data.username, text: data.text.slice(0, 80) };
+    const bar = document.getElementById("chat-reply-bar");
+    bar.classList.remove("hidden");
+    document.getElementById("chat-reply-preview").textContent =
+      `Replying to ${data.username}: ${replyingTo.text}${data.text.length > 80 ? "…" : ""}`;
+    document.getElementById("chat-input").focus();
+  });
+  actions.appendChild(replyBtn);
+
+  // Edit + Delete (own messages only)
+  if (isOwn) {
+    const editBtn = document.createElement("button");
+    editBtn.className = "chat-msg-action-btn";
+    editBtn.textContent = "✏ Edit";
+    editBtn.addEventListener("click", () => {
+      editingMsgId = id;
+      document.getElementById("chat-edit-input").value = data.text;
+      document.getElementById("chat-edit-modal").classList.remove("hidden");
+    });
+    actions.appendChild(editBtn);
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "chat-msg-action-btn danger";
+    delBtn.textContent = "🗑 Delete";
+    delBtn.addEventListener("click", async () => {
+      if (!confirm("Delete this message?")) return;
+      await db.collection("chat").doc(id).delete();
+    });
+    actions.appendChild(delBtn);
+  }
+
+  wrapper.appendChild(actions);
+  return wrapper;
+}
+
+function initChat() {
+  if (chatUnsubscribe) return; // already listening
+  const feed = document.getElementById("chat-messages");
+  feed.innerHTML = `<div class="chat-empty">Loading...</div>`;
+
+  chatUnsubscribe = db.collection("chat")
+    .orderBy("createdAt", "asc")
+    .onSnapshot(snap => {
+      feed.innerHTML = "";
+      if (snap.empty) {
+        feed.innerHTML = `<div class="chat-empty">No messages yet. Say hello!</div>`;
+        return;
+      }
+      snap.forEach(doc => {
+        feed.appendChild(buildChatBubble(doc.id, doc.data()));
+      });
+      feed.scrollTop = feed.scrollHeight;
+    }, err => {
+      feed.innerHTML = `<div class="chat-empty">Error loading chat.</div>`;
+      console.error(err);
+    });
+}
+
+// Auto-resize textarea
+document.getElementById("chat-input").addEventListener("input", function() {
+  this.style.height = "auto";
+  this.style.height = Math.min(this.scrollHeight, 120) + "px";
+});
+
+// Send on Enter (Shift+Enter for newline)
+document.getElementById("chat-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendChatMessage();
+  }
+});
+
+document.getElementById("chat-send-btn").addEventListener("click", sendChatMessage);
+
+async function sendChatMessage() {
+  const input = document.getElementById("chat-input");
+  const text = input.value.trim();
+  if (!text || !currentUser) return;
+
+  const msgData = {
+    username: currentUser,
+    text,
+    createdAt: firebase.firestore.Timestamp.now(),
+    editedAt: null,
+    replyTo: replyingTo || null
+  };
+
+  try {
+    await db.collection("chat").add(msgData);
+    input.value = "";
+    input.style.height = "auto";
+    replyingTo = null;
+    document.getElementById("chat-reply-bar").classList.add("hidden");
+    document.getElementById("chat-reply-preview").textContent = "";
+  } catch (e) {
+    alert("Error sending message: " + e.message);
+  }
+}
+
+// Cancel reply
+document.getElementById("chat-reply-cancel").addEventListener("click", () => {
+  replyingTo = null;
+  document.getElementById("chat-reply-bar").classList.add("hidden");
+  document.getElementById("chat-reply-preview").textContent = "";
+});
+
+// Edit modal
+document.getElementById("chat-edit-cancel").addEventListener("click", () => {
+  document.getElementById("chat-edit-modal").classList.add("hidden");
+  editingMsgId = null;
+});
+
+document.getElementById("chat-edit-save").addEventListener("click", async () => {
+  const newText = document.getElementById("chat-edit-input").value.trim();
+  if (!newText || !editingMsgId) return;
+  try {
+    await db.collection("chat").doc(editingMsgId).update({
+      text: newText,
+      editedAt: firebase.firestore.Timestamp.now()
+    });
+    document.getElementById("chat-edit-modal").classList.add("hidden");
+    editingMsgId = null;
+  } catch (e) {
+    alert("Error editing message: " + e.message);
+  }
+});
+
+// Clean up chat listener on logout
+const _origLogout = document.getElementById("logout-btn").onclick;
+document.getElementById("logout-btn").addEventListener("click", () => {
+  if (chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; }
+  replyingTo = null;
+  editingMsgId = null;
 });

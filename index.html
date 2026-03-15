@@ -12,7 +12,7 @@
   <div id="auth-screen" class="screen active">
     <div class="auth-container">
       <h1 class="game-title">Elemental Wars</h1>
-      <p class="subtitle">Stat Tracker <span class="version-tag">v1.3</span></p>
+      <p class="subtitle">Stat Tracker <span class="version-tag">v1.3.1</span></p>
       <div class="auth-box">
         <div class="auth-tabs">
           <button class="auth-tab active" data-tab="login">Log In</button>
@@ -37,7 +37,7 @@
   <!-- ==================== DASHBOARD ==================== -->
   <div id="dashboard-screen" class="screen">
     <header class="top-bar">
-      <h2 class="logo">Elemental Wars <span class="version-tag">v1.3</span></h2>
+      <h2 class="logo">Elemental Wars <span class="version-tag">v1.3.1</span></h2>
       <div class="top-bar-right">
         <span id="current-user-display"></span>
         <button id="logout-btn" class="btn btn-small">Log Out</button>
@@ -58,6 +58,7 @@
         <nav class="main-tab-nav">
           <button class="main-tab-btn active" data-tab="sheet">&#x1F4CB; Status Sheet</button>
           <button class="main-tab-btn" data-tab="news">&#x1F4F0; News</button>
+          <button class="main-tab-btn" data-tab="chat">&#x1F4AC; Chat</button>
         </nav>
 
         <!-- Status Sheet Tab -->
@@ -515,6 +516,21 @@
           <div id="news-feed"></div>
         </div>
 
+        <!-- Chat Tab -->
+        <div id="main-tab-chat" class="main-tab-content hidden">
+          <div class="chat-container">
+            <div class="chat-messages" id="chat-messages"></div>
+            <div class="chat-reply-bar hidden" id="chat-reply-bar">
+              <span id="chat-reply-preview"></span>
+              <button class="chat-reply-cancel" id="chat-reply-cancel">&#x2715;</button>
+            </div>
+            <div class="chat-input-row">
+              <textarea id="chat-input" placeholder="Type a message..." rows="1" maxlength="2000"></textarea>
+              <button class="btn btn-primary" id="chat-send-btn">Send</button>
+            </div>
+          </div>
+        </div>
+
       </main>
     </div>
   </div>
@@ -630,6 +646,18 @@
       <div class="modal-buttons">
         <button class="btn btn-small" id="news-delete-cancel">Cancel</button>
         <button class="btn btn-small btn-danger" id="news-delete-confirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Edit Modal -->
+  <div id="chat-edit-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Edit Message</h3>
+      <textarea id="chat-edit-input" rows="4" maxlength="2000" style="width:100%;margin-bottom:12px;"></textarea>
+      <div class="modal-buttons">
+        <button class="btn btn-small" id="chat-edit-cancel">Cancel</button>
+        <button class="btn btn-primary btn-small" id="chat-edit-save">Save</button>
       </div>
     </div>
   </div>
