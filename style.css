@@ -1385,6 +1385,8 @@ input[type="number"] { -moz-appearance: textfield; }
 .chat-container {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
   height: calc(100vh - 160px);
   background: var(--bg-card);
   border: 1px solid var(--border);
