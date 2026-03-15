@@ -1615,6 +1615,16 @@ document.getElementById("news-delete-cancel").addEventListener("click", () => {
 document.getElementById("news-delete-confirm").addEventListener("click", async () => {
   if (!pendingDeleteId || !isAdmin) return;
   try {
+    // Delete image from Storage if it exists
+    const docSnap = await db.collection("news").doc(pendingDeleteId).get();
+    const imageUrl = docSnap.data()?.imageUrl;
+    if (imageUrl) {
+      try {
+        await storage.refFromURL(imageUrl).delete();
+      } catch (imgErr) {
+        console.warn("Image delete failed (may already be gone):", imgErr.message);
+      }
+    }
     await db.collection("news").doc(pendingDeleteId).delete();
     document.getElementById("news-delete-modal").classList.add("hidden");
     pendingDeleteId = null;
