@@ -1539,7 +1539,9 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 
 #chat-input {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  width: 0;
   background: var(--bg-input);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -1550,6 +1552,11 @@ input[type="number"] { -moz-appearance: textfield; }
   max-height: 120px;
   overflow-y: auto;
   font-family: inherit;
+}
+
+#chat-send-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 #chat-input:focus {
