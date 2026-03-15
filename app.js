@@ -1883,3 +1883,65 @@ document.getElementById("logout-btn").addEventListener("click", () => {
   replyingTo = null;
   editingMsgId = null;
 });
+
+// ============================================
+// DELETE ACCOUNT
+// ============================================
+document.getElementById("delete-account-btn").addEventListener("click", () => {
+  document.getElementById("delete-account-password").value = "";
+  document.getElementById("delete-account-error").textContent = "";
+  document.getElementById("delete-account-modal").classList.remove("hidden");
+  document.getElementById("delete-account-password").focus();
+});
+
+document.getElementById("delete-account-cancel").addEventListener("click", () => {
+  document.getElementById("delete-account-modal").classList.add("hidden");
+});
+
+document.getElementById("delete-account-confirm").addEventListener("click", async () => {
+  const pw = document.getElementById("delete-account-password").value;
+  const errorEl = document.getElementById("delete-account-error");
+  const confirmBtn = document.getElementById("delete-account-confirm");
+  errorEl.textContent = "";
+
+  if (!pw) { errorEl.textContent = "Please enter your password."; return; }
+
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = "Deleting...";
+
+  try {
+    // Verify password
+    const pwHash = await hashPassword(pw);
+    const userDoc = await db.collection("users").doc(currentUser).get();
+    if (!userDoc.exists || userDoc.data().passwordHash !== pwHash) {
+      errorEl.textContent = "Incorrect password. Try again.";
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = "Delete My Account";
+      return;
+    }
+
+    // Delete user's chat messages
+    const chatSnap = await db.collection("chat").where("username", "==", currentUser).get();
+    const batch = db.batch();
+    chatSnap.forEach(doc => batch.delete(doc.ref));
+
+    // Delete user document
+    batch.delete(db.collection("users").doc(currentUser));
+    await batch.commit();
+
+    // Clean up and log out
+    document.getElementById("delete-account-modal").classList.add("hidden");
+    if (chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; }
+    if (chatUsersUnsubscribe) { chatUsersUnsubscribe(); chatUsersUnsubscribe = null; }
+    currentUser = null;
+    viewingUser = null;
+    isAdmin = false;
+    showScreen("auth-screen");
+    document.getElementById("username-input").value = "";
+    document.getElementById("password-input").value = "";
+  } catch (e) {
+    errorEl.textContent = "Error deleting account: " + e.message;
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = "Delete My Account";
+  }
+});

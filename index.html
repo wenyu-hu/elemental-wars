@@ -12,7 +12,7 @@
   <div id="auth-screen" class="screen active">
     <div class="auth-container">
       <h1 class="game-title">Elemental Wars</h1>
-      <p class="subtitle">Stat Tracker <span class="version-tag">v1.3.2</span></p>
+      <p class="subtitle">Stat Tracker <span class="version-tag">v1.3.3</span></p>
       <div class="auth-box">
         <div class="auth-tabs">
           <button class="auth-tab active" data-tab="login">Log In</button>
@@ -37,10 +37,11 @@
   <!-- ==================== DASHBOARD ==================== -->
   <div id="dashboard-screen" class="screen">
     <header class="top-bar">
-      <h2 class="logo">Elemental Wars <span class="version-tag">v1.3.2</span></h2>
+      <h2 class="logo">Elemental Wars <span class="version-tag">v1.3.3</span></h2>
       <div class="top-bar-right">
         <span id="current-user-display"></span>
         <button id="logout-btn" class="btn btn-small">Log Out</button>
+        <button id="delete-account-btn" class="btn btn-small btn-danger">Delete Account</button>
       </div>
     </header>
 
@@ -664,6 +665,23 @@
       <div class="modal-buttons">
         <button class="btn btn-small" id="chat-edit-cancel">Cancel</button>
         <button class="btn btn-primary btn-small" id="chat-edit-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Account Modal -->
+  <div id="delete-account-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Delete Account</h3>
+      <p style="color:var(--text-secondary);margin-bottom:16px;">This will permanently delete your account and all your data. This <strong>cannot</strong> be undone.</p>
+      <div class="inv-modal-row">
+        <label>Enter your password to confirm</label>
+        <input type="password" id="delete-account-password" placeholder="Password" autocomplete="off">
+      </div>
+      <div id="delete-account-error" style="color:var(--danger);font-size:0.85rem;margin-top:8px;"></div>
+      <div class="modal-buttons" style="margin-top:16px;">
+        <button class="btn btn-small" id="delete-account-cancel">Cancel</button>
+        <button class="btn btn-small btn-danger" id="delete-account-confirm">Delete My Account</button>
       </div>
     </div>
   </div>
