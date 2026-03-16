@@ -1646,6 +1646,17 @@ input[type="number"] { -moz-appearance: textfield; }
   padding: 0 2px;
   font-weight: 700;
 }
+.mention.mention-everyone {
+  background: rgba(255, 120, 50, 0.18);
+  color: #ff8c42;
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 700;
+}
+.mention-item-everyone {
+  color: #ff8c42;
+  font-weight: 600;
+}
 
 /* Highlighted message when current user is @mentioned */
 .chat-msg.mentioned > .chat-msg-bubble {

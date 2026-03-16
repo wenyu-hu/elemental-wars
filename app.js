@@ -113,6 +113,7 @@ function escapeHtml(str) {
 function renderMentionText(text) {
   const escaped = escapeHtml(text);
   return escaped.replace(/@(\w+)/g, (_, username) => {
+    if (username === "everyone") return `<span class="mention mention-everyone">@everyone</span>`;
     const isSelf = username === currentUser;
     return `<span class="mention${isSelf ? ' mention-self' : ''}">@${username}</span>`;
   });
@@ -245,6 +246,7 @@ function onLogin() {
   initUserList();
   loadSheet(currentUser, true);
   checkAdmin();
+  initChat(); // start notification listener immediately, even before Chat tab is opened
   // Set online status and start heartbeat
   db.collection("users").doc(currentUser).update({
     online: true,
@@ -1716,7 +1718,10 @@ function formatChatTimestamp(ts) {
 function buildChatBubble(id, data) {
   const isOwn = data.username === currentUser;
   const wrapper = document.createElement("div");
-  const isMentioned = !isOwn && data.text && data.text.includes(`@${currentUser}`);
+  const isMentioned = !isOwn && data.text && (
+    data.text.includes(`@${currentUser}`) ||
+    ((!data.recipient || data.recipient === "everyone") && data.text.includes("@everyone"))
+  );
   wrapper.className = "chat-msg " + (isOwn ? "own" : "other") + (isMentioned ? " mentioned" : "");
   wrapper.dataset.id = id;
 
@@ -1843,16 +1848,18 @@ function initChat() {
   chatUnsubscribe = db.collection("chat")
     .orderBy("createdAt", "asc")
     .onSnapshot(snap => {
-      // Notification badge for new @mentions and private messages
+      // Notification badge for new @mentions, @everyone, and private messages
       if (!firstLoad) {
         snap.docChanges().forEach(change => {
           if (change.type === "added") {
             const data = change.doc.data();
             const chatHidden = document.getElementById("main-tab-chat").classList.contains("hidden");
             if (chatHidden && data.username !== currentUser) {
+              const isPublic = !data.recipient || data.recipient === "everyone";
               const mentionsMe = data.text && data.text.includes(`@${currentUser}`);
+              const everyonePing = isPublic && data.text && data.text.includes("@everyone");
               const privateToMe = data.recipient === currentUser;
-              if (mentionsMe || privateToMe) {
+              if (mentionsMe || everyonePing || privateToMe) {
                 document.getElementById("chat-notification-badge").classList.remove("hidden");
               }
             }
@@ -1896,14 +1903,17 @@ document.getElementById("chat-input").addEventListener("input", function() {
   const atMatch = textBefore.match(/@(\w*)$/);
   const dropdown = document.getElementById("mention-dropdown");
 
-  if (atMatch && allUsernames.length > 0) {
+  if (atMatch) {
     const query = atMatch[1].toLowerCase();
-    const matches = allUsernames.filter(u => u.toLowerCase().startsWith(query)).slice(0, 6);
+    const recipient = document.getElementById("chat-recipient").value || "everyone";
+    const userMatches = allUsernames.filter(u => u.toLowerCase().startsWith(query)).slice(0, 5);
+    const includeEveryone = recipient === "everyone" && "everyone".startsWith(query);
+    const matches = includeEveryone ? ["everyone", ...userMatches] : userMatches;
     if (matches.length > 0) {
       dropdown.innerHTML = "";
       matches.forEach(u => {
         const item = document.createElement("div");
-        item.className = "mention-item";
+        item.className = "mention-item" + (u === "everyone" ? " mention-item-everyone" : "");
         item.textContent = "@" + u;
         item.addEventListener("mousedown", (e) => {
           e.preventDefault();
@@ -1946,6 +1956,12 @@ async function sendChatMessage() {
   if (!text || !currentUser) return;
 
   const recipient = document.getElementById("chat-recipient").value || "everyone";
+
+  // @everyone is only allowed in public messages
+  if (text.includes("@everyone") && recipient !== "everyone") {
+    alert("@everyone can only be used in messages sent to Everyone.");
+    return;
+  }
   const msgData = {
     username: currentUser,
     text,
