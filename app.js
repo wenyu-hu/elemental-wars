@@ -92,6 +92,10 @@ function getItemEmoji(text) {
   return FALLBACK_EMOJI;
 }
 
+// Returns the Firestore user doc ID that edits should target.
+// Admin editing another user's sheet → that user. Otherwise → self.
+function editTarget() { return viewingUser || currentUser; }
+
 // --- Online status helper ---
 function isUserOnline(data) {
   if (!data || !data.online) return false;
@@ -240,6 +244,7 @@ authForm.addEventListener("submit", async (e) => {
 });
 
 function onLogin() {
+  localStorage.setItem("ewUser", currentUser);
   viewingUser = null;
   document.getElementById("current-user-display").textContent = currentUser;
   showScreen("dashboard-screen");
@@ -267,6 +272,7 @@ document.getElementById("logout-btn").addEventListener("click", () => {
   if (currentUser) db.collection("users").doc(currentUser).update({ online: false });
   clearInterval(statusHeartbeat); statusHeartbeat = null;
   if (userListUnsubscribe) { userListUnsubscribe(); userListUnsubscribe = null; }
+  localStorage.removeItem("ewUser");
   currentUser = null;
   viewingUser = null;
   isAdmin = false;
@@ -304,7 +310,7 @@ function renderUserList(filter) {
         loadSheet(currentUser, true);
       } else {
         viewingUser = u;
-        loadSheet(u, false);
+        loadSheet(u, isAdmin); // admin gets editable view; others get read-only
       }
       list.querySelectorAll("li").forEach(l => l.classList.remove("active"));
       li.classList.add("active");
@@ -339,14 +345,24 @@ async function loadSheet(username, editable) {
   const sheet = document.getElementById("status-sheet");
   const banner = document.getElementById("viewing-banner");
 
-  // Toggle read-only
-  if (editable) {
+  // Toggle read-only; admin editing another user still shows banner
+  if (username === currentUser) {
     sheet.classList.remove("read-only");
     banner.classList.add("hidden");
+  } else if (isAdmin) {
+    sheet.classList.remove("read-only");
+    banner.classList.remove("hidden");
+    document.getElementById("viewing-username").textContent = username;
+    document.getElementById("banner-verb").textContent = "Editing";
+    document.getElementById("banner-mode").textContent = "(admin)";
+    document.getElementById("banner-mode").style.color = "var(--accent)";
   } else {
     sheet.classList.add("read-only");
     banner.classList.remove("hidden");
     document.getElementById("viewing-username").textContent = username;
+    document.getElementById("banner-verb").textContent = "Viewing";
+    document.getElementById("banner-mode").textContent = "(read-only)";
+    document.getElementById("banner-mode").style.color = "";
   }
 
   // Header
@@ -433,13 +449,13 @@ function updateHealthBar(current, max) {
 // SAVE HELPERS
 // ============================================
 function saveField(field, value) {
-  if (!currentUser || viewingUser) return;
-  db.collection("users").doc(currentUser).update({ [field]: value });
+  if (!currentUser || (viewingUser && !isAdmin)) return;
+  db.collection("users").doc(editTarget()).update({ [field]: value });
 }
 
 function saveNestedField(category, field, value) {
-  if (!currentUser || viewingUser) return;
-  db.collection("users").doc(currentUser).update({
+  if (!currentUser || (viewingUser && !isAdmin)) return;
+  db.collection("users").doc(editTarget()).update({
     [`${category}.${field}`]: value
   });
 }
@@ -544,7 +560,7 @@ document.querySelectorAll(".equip-card").forEach(card => {
     const event = el.tagName === "SELECT" ? "change" : "blur";
 
     el.addEventListener(event, () => {
-      if (!currentUser || viewingUser) return;
+      if (!currentUser || (viewingUser && !isAdmin)) return;
 
       let value;
       if (TEXT_STAT_FIELDS.has(field)) {
@@ -583,7 +599,7 @@ document.querySelectorAll(".equip-card").forEach(card => {
 // Accessories (inputs and textareas)
 document.querySelectorAll(".accessory-slot input, .accessory-slot textarea").forEach(inp => {
   inp.addEventListener("blur", () => {
-    if (!currentUser || viewingUser) return;
+    if (!currentUser || (viewingUser && !isAdmin)) return;
     saveNestedField("accessories", inp.dataset.field, inp.value);
   });
 });
@@ -608,21 +624,21 @@ function renderPets(pets) {
 document.getElementById("add-pet-btn").addEventListener("click", async () => {
   const input = document.getElementById("pet-name-input");
   const name = input.value.trim();
-  if (!name || !currentUser || viewingUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  if (!name || !currentUser || (viewingUser && !isAdmin)) return;
+  const doc = await db.collection("users").doc(editTarget()).get();
   const pets = doc.data().pets || [];
   pets.push(name);
-  await db.collection("users").doc(currentUser).update({ pets });
+  await db.collection("users").doc(editTarget()).update({ pets });
   input.value = "";
   renderPets(pets);
 });
 
 async function removePet(index) {
-  if (!currentUser || viewingUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  if (!currentUser || (viewingUser && !isAdmin)) return;
+  const doc = await db.collection("users").doc(editTarget()).get();
   const pets = doc.data().pets || [];
   pets.splice(index, 1);
-  await db.collection("users").doc(currentUser).update({ pets });
+  await db.collection("users").doc(editTarget()).update({ pets });
   renderPets(pets);
 }
 
@@ -644,22 +660,22 @@ document.getElementById("add-ext-btn").addEventListener("click", async () => {
   const forInput = document.getElementById("ext-for-input");
   const name = nameInput.value.trim();
   const appliedTo = forInput.value.trim();
-  if (!name || !appliedTo || !currentUser || viewingUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  if (!name || !appliedTo || !currentUser || (viewingUser && !isAdmin)) return;
+  const doc = await db.collection("users").doc(editTarget()).get();
   const extensions = doc.data().extensions || [];
   extensions.push({ name, appliedTo });
-  await db.collection("users").doc(currentUser).update({ extensions });
+  await db.collection("users").doc(editTarget()).update({ extensions });
   nameInput.value = "";
   forInput.value = "";
   renderExtensions(extensions);
 });
 
 async function removeExtension(index) {
-  if (!currentUser || viewingUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  if (!currentUser || (viewingUser && !isAdmin)) return;
+  const doc = await db.collection("users").doc(editTarget()).get();
   const extensions = doc.data().extensions || [];
   extensions.splice(index, 1);
-  await db.collection("users").doc(currentUser).update({ extensions });
+  await db.collection("users").doc(editTarget()).update({ extensions });
   renderExtensions(extensions);
 }
 
@@ -689,21 +705,21 @@ function renderGems(gems) {
 document.getElementById("add-gem-btn").addEventListener("click", async () => {
   const input = document.getElementById("gem-name-input");
   const name = input.value.trim();
-  if (!name || !currentUser || viewingUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  if (!name || !currentUser || (viewingUser && !isAdmin)) return;
+  const doc = await db.collection("users").doc(editTarget()).get();
   const gems = doc.data().gems || [];
   gems.push(name);
-  await db.collection("users").doc(currentUser).update({ gems });
+  await db.collection("users").doc(editTarget()).update({ gems });
   input.value = "";
   renderGems(gems);
 });
 
 async function removeGem(index) {
-  if (!currentUser || viewingUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  if (!currentUser || (viewingUser && !isAdmin)) return;
+  const doc = await db.collection("users").doc(editTarget()).get();
   const gems = doc.data().gems || [];
   gems.splice(index, 1);
-  await db.collection("users").doc(currentUser).update({ gems });
+  await db.collection("users").doc(editTarget()).update({ gems });
   renderGems(gems);
 }
 
@@ -725,22 +741,22 @@ document.getElementById("add-arrow-btn").addEventListener("click", async () => {
   const countInput = document.getElementById("arrow-count-input");
   const type = nameInput.value.trim();
   const count = parseIntOrInf(countInput.value);
-  if (!type || count === null || !currentUser || viewingUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  if (!type || count === null || !currentUser || (viewingUser && !isAdmin)) return;
+  const doc = await db.collection("users").doc(editTarget()).get();
   const arrows = doc.data().arrows || [];
   arrows.push({ type, count });
-  await db.collection("users").doc(currentUser).update({ arrows });
+  await db.collection("users").doc(editTarget()).update({ arrows });
   nameInput.value = "";
   countInput.value = "";
   renderArrows(arrows);
 });
 
 async function removeArrow(index) {
-  if (!currentUser || viewingUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  if (!currentUser || (viewingUser && !isAdmin)) return;
+  const doc = await db.collection("users").doc(editTarget()).get();
   const arrows = doc.data().arrows || [];
   arrows.splice(index, 1);
-  await db.collection("users").doc(currentUser).update({ arrows });
+  await db.collection("users").doc(editTarget()).update({ arrows });
   renderArrows(arrows);
 }
 
@@ -762,22 +778,22 @@ document.getElementById("add-spell-btn").addEventListener("click", async () => {
   const levelInput = document.getElementById("spell-level-input");
   const name = nameInput.value.trim();
   const level = levelInput.value;
-  if (!name || !level || !currentUser || viewingUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  if (!name || !level || !currentUser || (viewingUser && !isAdmin)) return;
+  const doc = await db.collection("users").doc(editTarget()).get();
   const spells = doc.data().spells || [];
   spells.push({ name, level });
-  await db.collection("users").doc(currentUser).update({ spells });
+  await db.collection("users").doc(editTarget()).update({ spells });
   nameInput.value = "";
   levelInput.value = "";
   renderSpells(spells);
 });
 
 async function removeSpell(index) {
-  if (!currentUser || viewingUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  if (!currentUser || (viewingUser && !isAdmin)) return;
+  const doc = await db.collection("users").doc(editTarget()).get();
   const spells = doc.data().spells || [];
   spells.splice(index, 1);
-  await db.collection("users").doc(currentUser).update({ spells });
+  await db.collection("users").doc(editTarget()).update({ spells });
   renderSpells(spells);
 }
 
@@ -1133,10 +1149,10 @@ document.getElementById("inv-cancel-btn").addEventListener("click", () => {
 
 document.getElementById("inv-clear-btn").addEventListener("click", async () => {
   if (inventoryEditIndex === null || !currentUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  const doc = await db.collection("users").doc(editTarget()).get();
   const inventory = doc.data().inventory || new Array(32).fill("");
   inventory[inventoryEditIndex] = "";
-  await db.collection("users").doc(currentUser).update({ inventory });
+  await db.collection("users").doc(editTarget()).update({ inventory });
   renderInventory(inventory);
   document.getElementById("inventory-modal").classList.add("hidden");
 });
@@ -1190,10 +1206,10 @@ document.getElementById("inv-save-btn").addEventListener("click", async () => {
     artifactLevel: type === "artifact" ? parseInt(artifactLevel) : null
   };
 
-  const doc = await db.collection("users").doc(currentUser).get();
+  const doc = await db.collection("users").doc(editTarget()).get();
   const inventory = doc.data().inventory || new Array(32).fill("");
   inventory[inventoryEditIndex] = itemObj;
-  await db.collection("users").doc(currentUser).update({ inventory });
+  await db.collection("users").doc(editTarget()).update({ inventory });
   renderInventory(inventory);
   document.getElementById("inventory-modal").classList.add("hidden");
 });
@@ -1221,10 +1237,13 @@ function renderAbilities(abilities) {
     container.appendChild(div);
   });
 
-  if (abilities.length >= 5 && !viewingUser) {
+  const canEdit = !viewingUser || isAdmin;
+  if (abilities.length >= 5 && canEdit) {
     addArea.style.display = "none";
-  } else if (!viewingUser) {
+  } else if (canEdit) {
     addArea.style.display = "";
+  } else {
+    addArea.style.display = "none";
   }
 }
 
@@ -1233,23 +1252,23 @@ document.getElementById("add-ability-btn").addEventListener("click", async () =>
   const levelInput = document.getElementById("ability-level-input");
   const name = nameInput.value.trim();
   const level = levelInput.value;
-  if (!name || !level || !currentUser || viewingUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  if (!name || !level || !currentUser || (viewingUser && !isAdmin)) return;
+  const doc = await db.collection("users").doc(editTarget()).get();
   const abilities = doc.data().abilities || [];
   if (abilities.length >= 5) return;
   abilities.push({ name, level });
-  await db.collection("users").doc(currentUser).update({ abilities });
+  await db.collection("users").doc(editTarget()).update({ abilities });
   nameInput.value = "";
   levelInput.value = "";
   renderAbilities(abilities);
 });
 
 async function removeAbility(index) {
-  if (!currentUser || viewingUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  if (!currentUser || (viewingUser && !isAdmin)) return;
+  const doc = await db.collection("users").doc(editTarget()).get();
   const abilities = doc.data().abilities || [];
   abilities.splice(index, 1);
-  await db.collection("users").doc(currentUser).update({ abilities });
+  await db.collection("users").doc(editTarget()).update({ abilities });
   renderAbilities(abilities);
 }
 
@@ -1285,17 +1304,17 @@ document.querySelectorAll(".equip-card").forEach(card => {
   if (!addBtn) return;
 
   addBtn.addEventListener("click", async () => {
-    if (!currentUser || viewingUser) return;
+    if (!currentUser || (viewingUser && !isAdmin)) return;
     const nameInput = card.querySelector(".enchant-name-input");
     const levelInput = card.querySelector(".enchant-level-input");
     const name = nameInput.value.trim();
     const level = levelInput.value;
     if (!name || !level) return;
-    const doc = await db.collection("users").doc(currentUser).get();
+    const doc = await db.collection("users").doc(editTarget()).get();
     const catData = doc.data()[cat] || {};
     const enchantments = catData.enchantments || [];
     enchantments.push({ name, level });
-    await db.collection("users").doc(currentUser).update({ [`${cat}.enchantments`]: enchantments });
+    await db.collection("users").doc(editTarget()).update({ [`${cat}.enchantments`]: enchantments });
     nameInput.value = "";
     levelInput.value = "";
     renderEnchantments(card, cat, enchantments);
@@ -1303,12 +1322,12 @@ document.querySelectorAll(".equip-card").forEach(card => {
 });
 
 async function removeEnchantment(card, category, index) {
-  if (!currentUser || viewingUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  if (!currentUser || (viewingUser && !isAdmin)) return;
+  const doc = await db.collection("users").doc(editTarget()).get();
   const catData = doc.data()[category] || {};
   const enchantments = catData.enchantments || [];
   enchantments.splice(index, 1);
-  await db.collection("users").doc(currentUser).update({ [`${category}.enchantments`]: enchantments });
+  await db.collection("users").doc(editTarget()).update({ [`${category}.enchantments`]: enchantments });
   renderEnchantments(card, category, enchantments);
 }
 
@@ -1333,7 +1352,7 @@ function renderTransportWeapons(weapons) {
 }
 
 document.querySelector(".transport-weapon-add-btn").addEventListener("click", async () => {
-  if (!currentUser || viewingUser) return;
+  if (!currentUser || (viewingUser && !isAdmin)) return;
   const card = document.querySelector('.equip-card[data-category="transportation"]');
   const nameInput = card.querySelector(".transport-weapon-name-input");
   const ammoInput = card.querySelector(".transport-weapon-ammo-input");
@@ -1342,12 +1361,12 @@ document.querySelector(".transport-weapon-add-btn").addEventListener("click", as
   const ammo = parseIntOrInf(ammoInput.value);
   const maxAmmo = parseIntOrInf(maxAmmoInput.value);
   if (!name || ammo === null || maxAmmo === null) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  const doc = await db.collection("users").doc(editTarget()).get();
   const catData = doc.data().transportation || {};
   let weapons = catData.weapons || [];
   if (!Array.isArray(weapons)) weapons = [];
   weapons.push({ name, ammo, maxAmmo });
-  await db.collection("users").doc(currentUser).update({ "transportation.weapons": weapons });
+  await db.collection("users").doc(editTarget()).update({ "transportation.weapons": weapons });
   nameInput.value = "";
   ammoInput.value = "";
   maxAmmoInput.value = "";
@@ -1355,13 +1374,13 @@ document.querySelector(".transport-weapon-add-btn").addEventListener("click", as
 });
 
 async function removeTransportWeapon(index) {
-  if (!currentUser || viewingUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  if (!currentUser || (viewingUser && !isAdmin)) return;
+  const doc = await db.collection("users").doc(editTarget()).get();
   const catData = doc.data().transportation || {};
   let weapons = catData.weapons || [];
   if (!Array.isArray(weapons)) weapons = [];
   weapons.splice(index, 1);
-  await db.collection("users").doc(currentUser).update({ "transportation.weapons": weapons });
+  await db.collection("users").doc(editTarget()).update({ "transportation.weapons": weapons });
   renderTransportWeapons(weapons);
 }
 
@@ -1412,7 +1431,7 @@ const megaGemBtn = document.getElementById("add-mega-gem-btn");
 if (megaGemBtn) {
   megaGemBtn.addEventListener("click", async () => {
     try {
-      if (!currentUser || viewingUser) return;
+      if (!currentUser || (viewingUser && !isAdmin)) return;
       const typeInput = document.getElementById("mega-gem-type-input");
       const qtyInput = document.getElementById("mega-gem-qty-input");
       const primeInput = document.getElementById("mega-gem-prime-input");
@@ -1428,10 +1447,10 @@ if (megaGemBtn) {
       if (qtyVal === "" || (quantity !== "∞" && (isNaN(quantity) || quantity < 1))) { alert("Please enter a valid quantity."); return; }
       if (prime && !outline) { alert("Prime gems require an outline colour."); return; }
 
-      const doc = await db.collection("users").doc(currentUser).get();
+      const doc = await db.collection("users").doc(editTarget()).get();
       const megaGems = doc.data().megaGems || [];
       megaGems.push({ type, quantity, prime, outline: prime ? outline : "" });
-      await db.collection("users").doc(currentUser).update({ megaGems });
+      await db.collection("users").doc(editTarget()).update({ megaGems });
       typeInput.value = "";
       qtyInput.value = "";
       primeInput.checked = false;
@@ -1448,11 +1467,11 @@ if (megaGemBtn) {
 }
 
 async function removeMegaGem(index) {
-  if (!currentUser || viewingUser) return;
-  const doc = await db.collection("users").doc(currentUser).get();
+  if (!currentUser || (viewingUser && !isAdmin)) return;
+  const doc = await db.collection("users").doc(editTarget()).get();
   const megaGems = doc.data().megaGems || [];
   megaGems.splice(index, 1);
-  await db.collection("users").doc(currentUser).update({ megaGems });
+  await db.collection("users").doc(editTarget()).update({ megaGems });
   renderMegaGems(megaGems);
 }
 
@@ -2072,6 +2091,7 @@ document.getElementById("delete-account-confirm").addEventListener("click", asyn
     if (userListUnsubscribe) { userListUnsubscribe(); userListUnsubscribe = null; }
     clearInterval(statusHeartbeat); statusHeartbeat = null;
     userListData = {}; allUsernames = [];
+    localStorage.removeItem("ewUser");
     currentUser = null;
     viewingUser = null;
     isAdmin = false;
@@ -2094,3 +2114,23 @@ window.addEventListener("beforeunload", () => {
     db.collection("users").doc(currentUser).update({ online: false });
   }
 });
+
+// ============================================
+// AUTO-LOGIN — restore session from localStorage
+// ============================================
+(async function tryAutoLogin() {
+  const savedUser = localStorage.getItem("ewUser");
+  if (!savedUser) return;
+  try {
+    const doc = await db.collection("users").doc(savedUser).get();
+    if (doc.exists) {
+      currentUser = savedUser;
+      onLogin();
+    } else {
+      localStorage.removeItem("ewUser");
+    }
+  } catch (e) {
+    console.error("Auto-login failed:", e);
+    localStorage.removeItem("ewUser");
+  }
+})();
