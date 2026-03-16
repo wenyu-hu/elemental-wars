@@ -9,6 +9,10 @@ const ADMIN_USERNAME = "Wenyu";
 let currentUser = null;   // logged-in username
 let viewingUser = null;    // whose sheet is displayed (null = own)
 let inventoryEditIndex = null;
+let userListUnsubscribe = null;
+let statusHeartbeat = null;
+let allUsernames = [];
+let userListData = {};
 
 // --- Emoji map for inventory ---
 const EMOJI_MAP = {
@@ -86,6 +90,32 @@ function getItemEmoji(text) {
     if (lower.includes(key)) return emoji;
   }
   return FALLBACK_EMOJI;
+}
+
+// --- Online status helper ---
+function isUserOnline(data) {
+  if (!data || !data.online) return false;
+  const lastSeen = data.lastSeen;
+  if (!lastSeen) return false;
+  const seenMs = lastSeen.toMillis ? lastSeen.toMillis() : lastSeen * 1000;
+  return (Date.now() - seenMs) < 120000; // 2 minutes
+}
+
+// --- Mention rendering helpers ---
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function renderMentionText(text) {
+  const escaped = escapeHtml(text);
+  return escaped.replace(/@(\w+)/g, (_, username) => {
+    const isSelf = username === currentUser;
+    return `<span class="mention${isSelf ? ' mention-self' : ''}">@${username}</span>`;
+  });
 }
 
 function parseInventoryInput(raw) {
@@ -212,16 +242,34 @@ function onLogin() {
   viewingUser = null;
   document.getElementById("current-user-display").textContent = currentUser;
   showScreen("dashboard-screen");
-  loadUserList();
+  initUserList();
   loadSheet(currentUser, true);
   checkAdmin();
+  // Set online status and start heartbeat
+  db.collection("users").doc(currentUser).update({
+    online: true,
+    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  statusHeartbeat = setInterval(() => {
+    if (currentUser) {
+      db.collection("users").doc(currentUser).update({
+        online: true,
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+  }, 45000);
 }
 
 // Logout
 document.getElementById("logout-btn").addEventListener("click", () => {
+  if (currentUser) db.collection("users").doc(currentUser).update({ online: false });
+  clearInterval(statusHeartbeat); statusHeartbeat = null;
+  if (userListUnsubscribe) { userListUnsubscribe(); userListUnsubscribe = null; }
   currentUser = null;
   viewingUser = null;
   isAdmin = false;
+  userListData = {};
+  allUsernames = [];
   document.getElementById("add-news-btn").classList.add("hidden");
   document.getElementById("username-input").value = "";
   document.getElementById("password-input").value = "";
@@ -232,42 +280,51 @@ document.getElementById("logout-btn").addEventListener("click", () => {
 // ============================================
 // USER LIST
 // ============================================
-async function loadUserList() {
-  const snapshot = await db.collection("users").get();
+function renderUserList(filter) {
   const list = document.getElementById("user-list");
-  const searchInput = document.getElementById("user-search");
-  const users = [];
-
-  snapshot.forEach(doc => users.push(doc.id));
-  users.sort((a, b) => a.localeCompare(b));
-
-  function renderList(filter) {
-    list.innerHTML = "";
-    const filtered = filter
-      ? users.filter(u => u.toLowerCase().includes(filter.toLowerCase()))
-      : users;
-    filtered.forEach(u => {
-      const li = document.createElement("li");
-      li.textContent = u;
-      if (u === currentUser) li.textContent += " (you)";
-      if ((viewingUser || currentUser) === u) li.classList.add("active");
-      li.addEventListener("click", () => {
-        if (u === currentUser) {
-          viewingUser = null;
-          loadSheet(currentUser, true);
-        } else {
-          viewingUser = u;
-          loadSheet(u, false);
-        }
-        list.querySelectorAll("li").forEach(l => l.classList.remove("active"));
-        li.classList.add("active");
-      });
-      list.appendChild(li);
+  list.innerHTML = "";
+  const usernames = Object.keys(userListData).sort((a, b) => a.localeCompare(b));
+  const filtered = filter
+    ? usernames.filter(u => u.toLowerCase().includes(filter.toLowerCase()))
+    : usernames;
+  filtered.forEach(u => {
+    const li = document.createElement("li");
+    const dot = document.createElement("span");
+    dot.className = "status-dot " + (isUserOnline(userListData[u]) ? "online" : "offline");
+    li.appendChild(dot);
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = u + (u === currentUser ? " (you)" : "");
+    li.appendChild(nameSpan);
+    if ((viewingUser || currentUser) === u) li.classList.add("active");
+    li.addEventListener("click", () => {
+      if (u === currentUser) {
+        viewingUser = null;
+        loadSheet(currentUser, true);
+      } else {
+        viewingUser = u;
+        loadSheet(u, false);
+      }
+      list.querySelectorAll("li").forEach(l => l.classList.remove("active"));
+      li.classList.add("active");
     });
-  }
+    list.appendChild(li);
+  });
+}
 
-  renderList("");
-  searchInput.addEventListener("input", () => renderList(searchInput.value));
+function initUserList() {
+  if (userListUnsubscribe) return;
+  const searchInput = document.getElementById("user-search");
+  userListUnsubscribe = db.collection("users").onSnapshot(snap => {
+    userListData = {};
+    allUsernames = [];
+    snap.forEach(doc => {
+      userListData[doc.id] = doc.data();
+      allUsernames.push(doc.id);
+    });
+    allUsernames.sort((a, b) => a.localeCompare(b));
+    renderUserList(searchInput.value);
+  });
+  searchInput.oninput = () => renderUserList(searchInput.value);
 }
 
 // ============================================
@@ -1414,7 +1471,10 @@ document.querySelectorAll(".main-tab-btn").forEach(btn => {
     btn.classList.add("active");
     document.getElementById("main-tab-" + btn.dataset.tab).classList.remove("hidden");
     if (btn.dataset.tab === "news") loadNews();
-    if (btn.dataset.tab === "chat") initChat();
+    if (btn.dataset.tab === "chat") {
+      initChat();
+      document.getElementById("chat-notification-badge").classList.add("hidden");
+    }
   });
 });
 
@@ -1656,7 +1716,8 @@ function formatChatTimestamp(ts) {
 function buildChatBubble(id, data) {
   const isOwn = data.username === currentUser;
   const wrapper = document.createElement("div");
-  wrapper.className = "chat-msg " + (isOwn ? "own" : "other");
+  const isMentioned = !isOwn && data.text && data.text.includes(`@${currentUser}`);
+  wrapper.className = "chat-msg " + (isOwn ? "own" : "other") + (isMentioned ? " mentioned" : "");
   wrapper.dataset.id = id;
 
   // Username
@@ -1678,7 +1739,7 @@ function buildChatBubble(id, data) {
   // Bubble
   const bubble = document.createElement("div");
   bubble.className = "chat-msg-bubble";
-  bubble.textContent = data.text;
+  bubble.innerHTML = renderMentionText(data.text);
   wrapper.appendChild(bubble);
 
   // Edited label
@@ -1778,9 +1839,28 @@ function initChat() {
   }
 
   // Listen to messages, filter by visibility
+  let firstLoad = true;
   chatUnsubscribe = db.collection("chat")
     .orderBy("createdAt", "asc")
     .onSnapshot(snap => {
+      // Notification badge for new @mentions and private messages
+      if (!firstLoad) {
+        snap.docChanges().forEach(change => {
+          if (change.type === "added") {
+            const data = change.doc.data();
+            const chatHidden = document.getElementById("main-tab-chat").classList.contains("hidden");
+            if (chatHidden && data.username !== currentUser) {
+              const mentionsMe = data.text && data.text.includes(`@${currentUser}`);
+              const privateToMe = data.recipient === currentUser;
+              if (mentionsMe || privateToMe) {
+                document.getElementById("chat-notification-badge").classList.remove("hidden");
+              }
+            }
+          }
+        });
+      }
+      firstLoad = false;
+
       feed.innerHTML = "";
       let hasVisible = false;
       snap.forEach(doc => {
@@ -1804,10 +1884,50 @@ function initChat() {
     });
 }
 
-// Auto-resize textarea
+// Auto-resize textarea + @mention autocomplete
 document.getElementById("chat-input").addEventListener("input", function() {
   this.style.height = "auto";
   this.style.height = Math.min(this.scrollHeight, 120) + "px";
+
+  // @mention autocomplete
+  const val = this.value;
+  const pos = this.selectionStart;
+  const textBefore = val.substring(0, pos);
+  const atMatch = textBefore.match(/@(\w*)$/);
+  const dropdown = document.getElementById("mention-dropdown");
+
+  if (atMatch && allUsernames.length > 0) {
+    const query = atMatch[1].toLowerCase();
+    const matches = allUsernames.filter(u => u.toLowerCase().startsWith(query)).slice(0, 6);
+    if (matches.length > 0) {
+      dropdown.innerHTML = "";
+      matches.forEach(u => {
+        const item = document.createElement("div");
+        item.className = "mention-item";
+        item.textContent = "@" + u;
+        item.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          const before = val.substring(0, pos - atMatch[0].length);
+          const after = val.substring(pos);
+          this.value = before + "@" + u + " " + after;
+          dropdown.classList.add("hidden");
+          this.focus();
+          this.style.height = "auto";
+          this.style.height = Math.min(this.scrollHeight, 120) + "px";
+        });
+        dropdown.appendChild(item);
+      });
+      dropdown.classList.remove("hidden");
+    } else {
+      dropdown.classList.add("hidden");
+    }
+  } else {
+    dropdown.classList.add("hidden");
+  }
+});
+
+document.getElementById("chat-input").addEventListener("blur", () => {
+  setTimeout(() => document.getElementById("mention-dropdown").classList.add("hidden"), 150);
 });
 
 // Send on Enter (Shift+Enter for newline)
@@ -1933,6 +2053,9 @@ document.getElementById("delete-account-confirm").addEventListener("click", asyn
     document.getElementById("delete-account-modal").classList.add("hidden");
     if (chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; }
     if (chatUsersUnsubscribe) { chatUsersUnsubscribe(); chatUsersUnsubscribe = null; }
+    if (userListUnsubscribe) { userListUnsubscribe(); userListUnsubscribe = null; }
+    clearInterval(statusHeartbeat); statusHeartbeat = null;
+    userListData = {}; allUsernames = [];
     currentUser = null;
     viewingUser = null;
     isAdmin = false;
@@ -1943,5 +2066,15 @@ document.getElementById("delete-account-confirm").addEventListener("click", asyn
     errorEl.textContent = "Error deleting account: " + e.message;
     confirmBtn.disabled = false;
     confirmBtn.textContent = "Delete My Account";
+  }
+});
+
+// ============================================
+// BEFOREUNLOAD — set user offline
+// ============================================
+window.addEventListener("beforeunload", () => {
+  clearInterval(statusHeartbeat);
+  if (currentUser) {
+    db.collection("users").doc(currentUser).update({ online: false });
   }
 });

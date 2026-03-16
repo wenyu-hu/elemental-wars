@@ -277,10 +277,24 @@ body {
   font-size: 0.9rem;
   transition: background 0.15s;
   margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 #user-list li:hover { background: var(--bg-input); }
 #user-list li.active { background: var(--accent); color: #fff; }
+
+/* Status dots */
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.status-dot.online  { background: #4caf50; box-shadow: 0 0 4px #4caf5088; }
+.status-dot.offline { background: #555; }
 
 /* Main Sheet Area */
 .sheet-area {
@@ -1364,6 +1378,9 @@ input[type="number"] { -moz-appearance: textfield; }
     background: var(--bg-input);
     border-radius: 20px;
     font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
   .sheet-area {
@@ -1616,3 +1633,63 @@ input[type="number"] { -moz-appearance: textfield; }
   font-size: 0.9rem;
   padding: 40px 0;
 }
+
+/* @mention highlighting in chat bubbles */
+.mention {
+  color: #7eb8f7;
+  font-weight: 600;
+}
+.mention.mention-self {
+  background: rgba(255, 200, 60, 0.18);
+  color: #ffc83c;
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 700;
+}
+
+/* Highlighted message when current user is @mentioned */
+.chat-msg.mentioned > .chat-msg-bubble {
+  background: rgba(255, 200, 60, 0.12);
+  border: 1px solid rgba(255, 200, 60, 0.35);
+}
+
+/* Chat tab notification badge */
+.chat-notification-badge {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #ff4444;
+  border-radius: 50%;
+  margin-left: 5px;
+  vertical-align: middle;
+  box-shadow: 0 0 5px #ff444488;
+}
+.chat-notification-badge.hidden { display: none; }
+
+/* @mention autocomplete dropdown */
+.chat-input-row {
+  position: relative;
+}
+
+.mention-dropdown {
+  position: absolute;
+  bottom: calc(100% - 10px);
+  left: 12px;
+  right: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 200;
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.35);
+}
+.mention-dropdown.hidden { display: none; }
+
+.mention-item {
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  transition: background 0.1s;
+}
+.mention-item:hover { background: var(--bg-input); }
