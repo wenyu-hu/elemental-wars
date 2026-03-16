@@ -402,6 +402,16 @@ input[type="number"] { -moz-appearance: textfield; }
 
 .badge-tokens { background: #e8c840; }
 .badge-booster { background: #44aaff; }
+.badge-power { background: #e84057; }
+
+.power-display {
+  display: inline-block;
+  min-width: 28px;
+  text-align: left;
+  font-weight: 700;
+  color: #fff;
+  pointer-events: none;
+}
 
 /* ============ HEALTH BAR ============ */
 .health-section {

@@ -420,6 +420,9 @@ async function loadSheet(username, editable) {
     renderEnchantments(card, cat, catData.enchantments || []);
   });
 
+  // Power score
+  updatePowerDisplay();
+
   // Lists
   renderPets(data.pets || []);
   renderExtensions(data.extensions || []);
@@ -434,6 +437,33 @@ async function loadSheet(username, editable) {
 
   // Abilities
   renderAbilities(data.abilities || []);
+}
+
+// ============================================
+// POWER SCORE (v1.4.1)
+// ============================================
+const RARITY_POWER = {
+  common: 1, uncommon: 2, rare: 3, epicRare: 4,
+  ultraRare: 5, legendary: 6, mythical: 7, elder: 9
+};
+
+function updatePowerDisplay() {
+  const categories = ["meleeWeapon", "defence", "rangedWeapon", "armour", "artifact", "transportation"];
+  let total = 0;
+  categories.forEach(cat => {
+    const card = document.querySelector(`.equip-card[data-category="${cat}"]`);
+    const rarityEl = card ? card.querySelector('[data-field="rarity"]') : null;
+    const rarity = rarityEl ? rarityEl.value : "";
+    if (!rarity) return;
+    if (rarity === "exclusive") {
+      const exclEl = card.querySelector('[data-field="exclusiveNum"]');
+      total += parseInt(exclEl && exclEl.value) || 0;
+    } else {
+      total += RARITY_POWER[rarity] || 0;
+    }
+  });
+  const el = document.getElementById("power-display");
+  if (el) el.textContent = total > 0 ? total : "—";
 }
 
 function updateHealthBar(current, max) {
@@ -591,6 +621,11 @@ document.querySelectorAll(".equip-card").forEach(card => {
           exclSelect.value = "";
           saveNestedField(cat, "exclusiveNum", "");
         }
+      }
+
+      // Recalculate power whenever rarity or exclusiveNum changes
+      if (field === "rarity" || field === "exclusiveNum") {
+        updatePowerDisplay();
       }
     });
   });
