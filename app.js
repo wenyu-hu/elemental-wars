@@ -252,6 +252,7 @@ function onLogin() {
   loadSheet(currentUser, true);
   checkAdmin();
   initChat(); // start notification listener immediately, even before Chat tab is opened
+  initNewsListener();
   // Set online status and start heartbeat
   db.collection("users").doc(currentUser).update({
     online: true,
@@ -346,9 +347,11 @@ async function loadSheet(username, editable) {
   const banner = document.getElementById("viewing-banner");
 
   // Toggle read-only; admin editing another user still shows banner
+  const adminDelBtn = document.getElementById("admin-delete-user-btn");
   if (username === currentUser) {
     sheet.classList.remove("read-only");
     banner.classList.add("hidden");
+    adminDelBtn.classList.add("hidden");
   } else if (isAdmin) {
     sheet.classList.remove("read-only");
     banner.classList.remove("hidden");
@@ -356,6 +359,7 @@ async function loadSheet(username, editable) {
     document.getElementById("banner-verb").textContent = "Editing";
     document.getElementById("banner-mode").textContent = "(admin)";
     document.getElementById("banner-mode").style.color = "var(--accent)";
+    adminDelBtn.classList.remove("hidden");
   } else {
     sheet.classList.add("read-only");
     banner.classList.remove("hidden");
@@ -363,6 +367,7 @@ async function loadSheet(username, editable) {
     document.getElementById("banner-verb").textContent = "Viewing";
     document.getElementById("banner-mode").textContent = "(read-only)";
     document.getElementById("banner-mode").style.color = "";
+    adminDelBtn.classList.add("hidden");
   }
 
   // Header
@@ -1526,7 +1531,11 @@ document.querySelectorAll(".main-tab-btn").forEach(btn => {
     document.querySelectorAll(".main-tab-content").forEach(c => c.classList.add("hidden"));
     btn.classList.add("active");
     document.getElementById("main-tab-" + btn.dataset.tab).classList.remove("hidden");
-    if (btn.dataset.tab === "news") loadNews();
+    if (btn.dataset.tab === "news") {
+      loadNews();
+      document.getElementById("news-notification-badge").classList.add("hidden");
+      localStorage.setItem("ewNewsLastSeen", Date.now().toString());
+    }
     if (btn.dataset.tab === "chat") {
       initChat();
       document.getElementById("chat-notification-badge").classList.add("hidden");
@@ -1575,6 +1584,42 @@ async function loadNews() {
   } catch (e) {
     feed.innerHTML = `<p class="news-empty">Error loading news.</p>`;
   }
+}
+
+let newsUnsubscribe = null;
+function initNewsListener() {
+  if (newsUnsubscribe) return;
+  let firstLoad = true;
+  newsUnsubscribe = db.collection("news")
+    .orderBy("createdAt", "desc")
+    .limit(1)
+    .onSnapshot(snap => {
+      if (firstLoad) {
+        // On first load, compare latest post timestamp to last seen
+        firstLoad = false;
+        if (snap.empty) return;
+        const latest = snap.docs[0].data().createdAt;
+        if (!latest) return;
+        const lastSeen = parseInt(localStorage.getItem("ewNewsLastSeen") || "0");
+        const latestMs = latest.toDate ? latest.toDate().getTime() : new Date(latest).getTime();
+        if (latestMs > lastSeen) {
+          const newsTabHidden = document.getElementById("main-tab-news").classList.contains("hidden");
+          if (newsTabHidden) {
+            document.getElementById("news-notification-badge").classList.remove("hidden");
+          }
+        }
+        return;
+      }
+      // After first load, any new post triggers badge if news tab not visible
+      snap.docChanges().forEach(change => {
+        if (change.type === "added") {
+          const newsTabHidden = document.getElementById("main-tab-news").classList.contains("hidden");
+          if (newsTabHidden) {
+            document.getElementById("news-notification-badge").classList.remove("hidden");
+          }
+        }
+      });
+    });
 }
 
 function buildNewsCard(id, data) {
@@ -1757,6 +1802,7 @@ document.getElementById("news-delete-confirm").addEventListener("click", async (
 let chatUnsubscribe = null;
 let replyingTo = null;       // { id, username, text }
 let editingMsgId = null;
+let chatImageFile = null;
 
 function formatChatTimestamp(ts) {
   if (!ts) return "";
@@ -1798,7 +1844,16 @@ function buildChatBubble(id, data) {
   // Bubble
   const bubble = document.createElement("div");
   bubble.className = "chat-msg-bubble";
-  bubble.innerHTML = renderMentionText(data.text);
+  if (data.text) bubble.innerHTML = renderMentionText(data.text);
+  // Image in message
+  if (data.imageUrl) {
+    const img = document.createElement("img");
+    img.src = data.imageUrl;
+    img.className = "chat-msg-image";
+    img.alt = "image";
+    img.addEventListener("click", () => window.open(data.imageUrl, "_blank"));
+    bubble.appendChild(img);
+  }
   wrapper.appendChild(bubble);
 
   // Edited label
@@ -1843,7 +1898,7 @@ function buildChatBubble(id, data) {
   });
   actions.appendChild(replyBtn);
 
-  // Edit + Delete (own messages only)
+  // Edit (own messages only)
   if (isOwn) {
     const editBtn = document.createElement("button");
     editBtn.className = "chat-msg-action-btn";
@@ -1854,12 +1909,20 @@ function buildChatBubble(id, data) {
       document.getElementById("chat-edit-modal").classList.remove("hidden");
     });
     actions.appendChild(editBtn);
+  }
 
+  // Delete (own messages OR admin)
+  if (isOwn || isAdmin) {
     const delBtn = document.createElement("button");
     delBtn.className = "chat-msg-action-btn danger";
     delBtn.textContent = "🗑 Delete";
     delBtn.addEventListener("click", async () => {
       if (!confirm("Delete this message?")) return;
+      // Delete image from Storage if present
+      if (data.imageUrl) {
+        try { await storage.refFromURL(data.imageUrl).delete(); }
+        catch (e) { console.warn("Image delete failed:", e.message); }
+      }
       await db.collection("chat").doc(id).delete();
     });
     actions.appendChild(delBtn);
@@ -2007,7 +2070,8 @@ document.getElementById("chat-send-btn").addEventListener("click", sendChatMessa
 async function sendChatMessage() {
   const input = document.getElementById("chat-input");
   const text = input.value.trim();
-  if (!text || !currentUser) return;
+  if (!text && !chatImageFile) return;
+  if (!currentUser) return;
 
   const recipient = document.getElementById("chat-recipient").value || "everyone";
 
@@ -2016,24 +2080,45 @@ async function sendChatMessage() {
     alert("@everyone can only be used in messages sent to Everyone.");
     return;
   }
-  const msgData = {
-    username: currentUser,
-    text,
-    recipient,
-    createdAt: firebase.firestore.Timestamp.now(),
-    editedAt: null,
-    replyTo: replyingTo || null
-  };
+
+  const sendBtn = document.getElementById("chat-send-btn");
+  sendBtn.disabled = true;
+  sendBtn.textContent = "Sending...";
 
   try {
+    let imageUrl = null;
+    if (chatImageFile) {
+      const ext = chatImageFile.name.split(".").pop();
+      const ref = storage.ref(`chat/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`);
+      await ref.put(chatImageFile);
+      imageUrl = await ref.getDownloadURL();
+    }
+
+    const msgData = {
+      username: currentUser,
+      text: text || "",
+      recipient,
+      createdAt: firebase.firestore.Timestamp.now(),
+      editedAt: null,
+      replyTo: replyingTo || null,
+      imageUrl: imageUrl || null
+    };
+
     await db.collection("chat").add(msgData);
     input.value = "";
     input.style.height = "auto";
     replyingTo = null;
+    chatImageFile = null;
+    document.getElementById("chat-image-preview").classList.add("hidden");
+    document.getElementById("chat-image-preview-img").src = "";
+    document.getElementById("chat-image-input").value = "";
     document.getElementById("chat-reply-bar").classList.add("hidden");
     document.getElementById("chat-reply-preview").textContent = "";
   } catch (e) {
     alert("Error sending message: " + e.message);
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.textContent = "Send";
   }
 }
 
@@ -2042,6 +2127,29 @@ document.getElementById("chat-reply-cancel").addEventListener("click", () => {
   replyingTo = null;
   document.getElementById("chat-reply-bar").classList.add("hidden");
   document.getElementById("chat-reply-preview").textContent = "";
+});
+
+// Chat image attach
+document.getElementById("chat-attach-btn").addEventListener("click", () => {
+  document.getElementById("chat-image-input").click();
+});
+document.getElementById("chat-image-input").addEventListener("change", (e) => {
+  chatImageFile = e.target.files[0] || null;
+  const preview = document.getElementById("chat-image-preview");
+  const previewImg = document.getElementById("chat-image-preview-img");
+  if (chatImageFile) {
+    previewImg.src = URL.createObjectURL(chatImageFile);
+    preview.classList.remove("hidden");
+  } else {
+    preview.classList.add("hidden");
+    previewImg.src = "";
+  }
+});
+document.getElementById("chat-image-remove").addEventListener("click", () => {
+  chatImageFile = null;
+  document.getElementById("chat-image-input").value = "";
+  document.getElementById("chat-image-preview").classList.add("hidden");
+  document.getElementById("chat-image-preview-img").src = "";
 });
 
 // Edit modal
@@ -2065,13 +2173,15 @@ document.getElementById("chat-edit-save").addEventListener("click", async () => 
   }
 });
 
-// Clean up chat listener on logout
+// Clean up chat + news listeners on logout
 const _origLogout = document.getElementById("logout-btn").onclick;
 document.getElementById("logout-btn").addEventListener("click", () => {
   if (chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; }
   if (chatUsersUnsubscribe) { chatUsersUnsubscribe(); chatUsersUnsubscribe = null; }
+  if (newsUnsubscribe) { newsUnsubscribe(); newsUnsubscribe = null; }
   replyingTo = null;
   editingMsgId = null;
+  chatImageFile = null;
 });
 
 // ============================================
@@ -2110,10 +2220,17 @@ document.getElementById("delete-account-confirm").addEventListener("click", asyn
       return;
     }
 
-    // Delete user's chat messages
+    // Delete user's chat messages (and their images)
     const chatSnap = await db.collection("chat").where("username", "==", currentUser).get();
     const batch = db.batch();
-    chatSnap.forEach(doc => batch.delete(doc.ref));
+    for (const doc of chatSnap.docs) {
+      const imgUrl = doc.data().imageUrl;
+      if (imgUrl) {
+        try { await storage.refFromURL(imgUrl).delete(); }
+        catch (e) { console.warn("Image delete failed:", e.message); }
+      }
+      batch.delete(doc.ref);
+    }
 
     // Delete user document
     batch.delete(db.collection("users").doc(currentUser));
@@ -2123,6 +2240,7 @@ document.getElementById("delete-account-confirm").addEventListener("click", asyn
     document.getElementById("delete-account-modal").classList.add("hidden");
     if (chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; }
     if (chatUsersUnsubscribe) { chatUsersUnsubscribe(); chatUsersUnsubscribe = null; }
+    if (newsUnsubscribe) { newsUnsubscribe(); newsUnsubscribe = null; }
     if (userListUnsubscribe) { userListUnsubscribe(); userListUnsubscribe = null; }
     clearInterval(statusHeartbeat); statusHeartbeat = null;
     userListData = {}; allUsernames = [];
@@ -2137,6 +2255,74 @@ document.getElementById("delete-account-confirm").addEventListener("click", asyn
     errorEl.textContent = "Error deleting account: " + e.message;
     confirmBtn.disabled = false;
     confirmBtn.textContent = "Delete My Account";
+  }
+});
+
+// ============================================
+// ADMIN DELETE OTHER USER
+// ============================================
+document.getElementById("admin-delete-user-btn").addEventListener("click", () => {
+  if (!isAdmin || !viewingUser) return;
+  document.getElementById("admin-delete-target").textContent = viewingUser;
+  document.getElementById("admin-delete-password").value = "";
+  document.getElementById("admin-delete-error").textContent = "";
+  document.getElementById("admin-delete-modal").classList.remove("hidden");
+  document.getElementById("admin-delete-password").focus();
+});
+
+document.getElementById("admin-delete-cancel").addEventListener("click", () => {
+  document.getElementById("admin-delete-modal").classList.add("hidden");
+});
+
+document.getElementById("admin-delete-confirm").addEventListener("click", async () => {
+  if (!isAdmin || !viewingUser) return;
+  const pw = document.getElementById("admin-delete-password").value;
+  const errorEl = document.getElementById("admin-delete-error");
+  const confirmBtn = document.getElementById("admin-delete-confirm");
+  errorEl.textContent = "";
+
+  if (!pw) { errorEl.textContent = "Please enter your admin password."; return; }
+
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = "Deleting...";
+
+  try {
+    // Verify admin password
+    const pwHash = await hashPassword(pw);
+    const adminDoc = await db.collection("users").doc(currentUser).get();
+    if (!adminDoc.exists || adminDoc.data().passwordHash !== pwHash) {
+      errorEl.textContent = "Incorrect admin password.";
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = "Delete User";
+      return;
+    }
+
+    const targetUser = viewingUser;
+
+    // Delete target user's chat messages (and their images)
+    const chatSnap = await db.collection("chat").where("username", "==", targetUser).get();
+    const batch = db.batch();
+    for (const doc of chatSnap.docs) {
+      const imgUrl = doc.data().imageUrl;
+      if (imgUrl) {
+        try { await storage.refFromURL(imgUrl).delete(); }
+        catch (e) { console.warn("Image delete failed:", e.message); }
+      }
+      batch.delete(doc.ref);
+    }
+
+    // Delete target user document
+    batch.delete(db.collection("users").doc(targetUser));
+    await batch.commit();
+
+    document.getElementById("admin-delete-modal").classList.add("hidden");
+    // Go back to own sheet
+    viewingUser = null;
+    loadSheet(currentUser, true);
+  } catch (e) {
+    errorEl.textContent = "Error deleting user: " + e.message;
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = "Delete User";
   }
 });
 

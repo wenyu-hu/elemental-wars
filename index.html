@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Elemental Wars - Stat Tracker v1.3.4</title>
+  <title>Elemental Wars - Stat Tracker v1.4.2</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
   <div id="auth-screen" class="screen active">
     <div class="auth-container">
       <h1 class="game-title">Elemental Wars</h1>
-      <p class="subtitle">Stat Tracker <span class="version-tag">v1.4.1</span></p>
+      <p class="subtitle">Stat Tracker <span class="version-tag">v1.4.2</span></p>
       <div class="auth-box">
         <div class="auth-tabs">
           <button class="auth-tab active" data-tab="login">Log In</button>
@@ -37,7 +37,7 @@
   <!-- ==================== DASHBOARD ==================== -->
   <div id="dashboard-screen" class="screen">
     <header class="top-bar">
-      <h2 class="logo">Elemental Wars <span class="version-tag">v1.4.1</span></h2>
+      <h2 class="logo">Elemental Wars <span class="version-tag">v1.4.2</span></h2>
       <div class="top-bar-right">
         <span id="current-user-display"></span>
         <button id="logout-btn" class="btn btn-small">Log Out</button>
@@ -58,7 +58,7 @@
         <!-- Tab Navigation -->
         <nav class="main-tab-nav">
           <button class="main-tab-btn active" data-tab="sheet">&#x1F4CB; Status Sheet</button>
-          <button class="main-tab-btn" data-tab="news">&#x1F4F0; News</button>
+          <button class="main-tab-btn" data-tab="news">&#x1F4F0; News<span class="news-notification-badge hidden" id="news-notification-badge"></span></button>
           <button class="main-tab-btn" data-tab="chat">&#x1F4AC; Chat<span class="chat-notification-badge hidden" id="chat-notification-badge"></span></button>
         </nav>
 
@@ -67,6 +67,7 @@
         <div id="viewing-banner" class="viewing-banner hidden">
           <span id="banner-verb">Viewing</span> <span id="viewing-username"></span>'s sheet <span id="banner-mode">(read-only)</span>
           <button id="back-to-own" class="btn btn-small">Back to My Sheet</button>
+          <button id="admin-delete-user-btn" class="btn btn-small btn-danger hidden">Delete This User</button>
         </div>
         <div id="status-sheet">
           <!-- Top Info -->
@@ -537,8 +538,16 @@
                 </select>
               </div>
               <div id="mention-dropdown" class="mention-dropdown hidden"></div>
-              <textarea id="chat-input" placeholder="Type a message... (use @username to ping)" rows="1" maxlength="2000"></textarea>
-              <button class="btn btn-primary" id="chat-send-btn">Send</button>
+              <div id="chat-image-preview" class="chat-image-preview hidden">
+                <img id="chat-image-preview-img" src="" alt="preview">
+                <button id="chat-image-remove" class="chat-image-remove">&times;</button>
+              </div>
+              <div class="chat-input-bottom">
+                <button class="btn btn-small chat-attach-btn" id="chat-attach-btn" title="Attach image">+</button>
+                <textarea id="chat-input" placeholder="Type a message... (use @username to ping)" rows="1" maxlength="2000"></textarea>
+                <button class="btn btn-primary" id="chat-send-btn">Send</button>
+              </div>
+              <input type="file" id="chat-image-input" accept="image/*" class="hidden">
             </div>
           </div>
         </div>
@@ -687,6 +696,23 @@
       <div class="modal-buttons" style="margin-top:16px;">
         <button class="btn btn-small" id="delete-account-cancel">Cancel</button>
         <button class="btn btn-small btn-danger" id="delete-account-confirm">Delete My Account</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Delete User Modal -->
+  <div id="admin-delete-user-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Delete User: <span id="admin-delete-target"></span></h3>
+      <p style="color:var(--text-secondary);margin-bottom:16px;">This will permanently delete this user's account and all their data. This <strong>cannot</strong> be undone.</p>
+      <div class="inv-modal-row">
+        <label>Enter YOUR (admin) password to confirm</label>
+        <input type="password" id="admin-delete-password" placeholder="Admin password" autocomplete="off">
+      </div>
+      <div id="admin-delete-error" style="color:var(--danger);font-size:0.85rem;margin-top:8px;"></div>
+      <div class="modal-buttons" style="margin-top:16px;">
+        <button class="btn btn-small" id="admin-delete-cancel">Cancel</button>
+        <button class="btn btn-small btn-danger" id="admin-delete-confirm">Delete User</button>
       </div>
     </div>
   </div>
