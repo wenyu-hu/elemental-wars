@@ -1536,6 +1536,9 @@ document.querySelectorAll(".main-tab-btn").forEach(btn => {
       document.getElementById("news-notification-badge").classList.add("hidden");
       localStorage.setItem("ewNewsLastSeen", Date.now().toString());
     }
+    if (btn.dataset.tab === "wardex") {
+      loadWardex();
+    }
     if (btn.dataset.tab === "chat") {
       initChat();
       document.getElementById("chat-notification-badge").classList.add("hidden");
@@ -1555,6 +1558,7 @@ let newsImageBase64 = null;
 function checkAdmin() {
   isAdmin = currentUser === ADMIN_USERNAME;
   document.getElementById("add-news-btn").classList.toggle("hidden", !isAdmin);
+  document.getElementById("wardex-add-btn").classList.toggle("hidden", !isAdmin);
 }
 
 function formatNewsTimestamp(ts) {
@@ -1795,6 +1799,286 @@ document.getElementById("news-delete-confirm").addEventListener("click", async (
     alert("Error deleting post: " + e.message);
   }
 });
+
+// ============================================
+// WARDEX (Enemy Dictionary) — v1.5.0
+// ============================================
+let currentWardexCategory = "fire";
+let wardexSortMode = "difficulty"; // "difficulty" | "manual"
+let editingEnemyId = null;
+
+const WARDEX_CAT_COLORS = {
+  fire: "#e84057", water: "#44aaff", air: "#aaddff", earth: "#88aa44",
+  light: "#ffe066", shadow: "#9955cc", stone: "#888888", ice: "#77ddff",
+  electricity: "#ffdd00", miscellaneous: "#aaaaaa", special: "#ff77ff"
+};
+
+function loadWardex() {
+  const list = document.getElementById("wardex-enemy-list");
+  list.innerHTML = `<p class="wardex-empty">Loading...</p>`;
+  db.collection("wardex")
+    .where("category", "==", currentWardexCategory)
+    .get()
+    .then(snap => {
+      if (snap.empty) {
+        list.innerHTML = `<p class="wardex-empty">No enemies in this category yet.</p>`;
+        return;
+      }
+      let enemies = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (wardexSortMode === "difficulty") {
+        enemies.sort((a, b) => (a.difficulty ?? 0) - (b.difficulty ?? 0));
+      } else {
+        enemies.sort((a, b) => (a.order ?? 99999) - (b.order ?? 99999));
+      }
+      list.innerHTML = "";
+      enemies.forEach((enemy, idx) => {
+        list.appendChild(buildEnemyCard(enemy, idx, enemies.length));
+      });
+    })
+    .catch(() => {
+      list.innerHTML = `<p class="wardex-empty">Error loading enemies.</p>`;
+    });
+}
+
+function buildEnemyCard(enemy, idx, total) {
+  const color = WARDEX_CAT_COLORS[currentWardexCategory] || "#888";
+  const card = document.createElement("div");
+  card.className = "wardex-card";
+  card.style.borderLeftColor = color;
+  card.dataset.id = enemy.id;
+
+  // Header
+  const header = document.createElement("div");
+  header.className = "wardex-card-header";
+
+  const left = document.createElement("div");
+  left.className = "wardex-card-left";
+
+  const nameEl = document.createElement("span");
+  nameEl.className = "wardex-card-name";
+  nameEl.textContent = enemy.name || "Unnamed";
+  left.appendChild(nameEl);
+
+  const diffEl = document.createElement("span");
+  diffEl.className = "wardex-card-diff";
+  diffEl.innerHTML = `Difficulty: <b>${enemy.difficulty ?? "—"}</b>`;
+  left.appendChild(diffEl);
+
+  header.appendChild(left);
+
+  if (isAdmin) {
+    const actions = document.createElement("div");
+    actions.className = "wardex-card-actions";
+
+    if (wardexSortMode === "manual") {
+      const upBtn = document.createElement("button");
+      upBtn.className = "btn btn-small wardex-order-btn";
+      upBtn.textContent = "↑";
+      upBtn.disabled = idx === 0;
+      upBtn.addEventListener("click", () => wardexReorder(enemy.id, "up"));
+      actions.appendChild(upBtn);
+
+      const downBtn = document.createElement("button");
+      downBtn.className = "btn btn-small wardex-order-btn";
+      downBtn.textContent = "↓";
+      downBtn.disabled = idx === total - 1;
+      downBtn.addEventListener("click", () => wardexReorder(enemy.id, "down"));
+      actions.appendChild(downBtn);
+    }
+
+    const editBtn = document.createElement("button");
+    editBtn.className = "btn btn-small";
+    editBtn.textContent = "Edit";
+    editBtn.addEventListener("click", () => openEnemyModal(enemy));
+    actions.appendChild(editBtn);
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "btn btn-small btn-danger";
+    delBtn.textContent = "Delete";
+    delBtn.addEventListener("click", () => {
+      if (!confirm(`Delete "${enemy.name}"?`)) return;
+      db.collection("wardex").doc(enemy.id).delete().then(() => loadWardex());
+    });
+    actions.appendChild(delBtn);
+
+    header.appendChild(actions);
+  }
+
+  card.appendChild(header);
+
+  // Stats row
+  const stats = document.createElement("div");
+  stats.className = "wardex-card-stats";
+  stats.innerHTML =
+    `<span><span class="wardex-stat-label">Speed</span>${enemy.movementSpeed ?? "—"}</span>` +
+    `<span><span class="wardex-stat-label">Range</span>${enemy.range ?? "—"}</span>` +
+    `<span><span class="wardex-stat-label">HP</span>${enemy.health ?? "—"}</span>`;
+  card.appendChild(stats);
+
+  // Attacks
+  if (enemy.attacks && enemy.attacks.length > 0) {
+    const atkSection = document.createElement("div");
+    atkSection.className = "wardex-card-attacks";
+
+    const atkTitle = document.createElement("div");
+    atkTitle.className = "wardex-card-attacks-title";
+    atkTitle.textContent = "Attacks";
+    atkSection.appendChild(atkTitle);
+
+    enemy.attacks.forEach(atk => {
+      const row = document.createElement("div");
+      row.className = "wardex-atk-display";
+      row.innerHTML =
+        `<span class="wardex-atk-display-name">${escapeHtml(atk.name || "Unnamed")}</span>` +
+        `<span class="wardex-atk-display-stats">Range: ${atk.range ?? "—"} &nbsp;|&nbsp; Freq: ${escapeHtml(atk.frequency || "—")} &nbsp;|&nbsp; DMG: ${atk.damage ?? "—"}</span>` +
+        (atk.specialEffects ? `<div class="wardex-atk-display-effects">${escapeHtml(atk.specialEffects)}</div>` : "");
+      atkSection.appendChild(row);
+    });
+
+    card.appendChild(atkSection);
+  }
+
+  return card;
+}
+
+async function wardexReorder(id, direction) {
+  const snap = await db.collection("wardex").where("category", "==", currentWardexCategory).get();
+  let enemies = snap.docs.map(d => ({ id: d.id, order: d.data().order }));
+  // Normalize: sort by existing order, assign clean integers
+  enemies.sort((a, b) => (a.order ?? 99999) - (b.order ?? 99999));
+  enemies = enemies.map((e, i) => ({ ...e, order: i }));
+
+  const idx = enemies.findIndex(e => e.id === id);
+  const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+  if (swapIdx < 0 || swapIdx >= enemies.length) return;
+
+  const batch = db.batch();
+  batch.update(db.collection("wardex").doc(enemies[idx].id), { order: swapIdx });
+  batch.update(db.collection("wardex").doc(enemies[swapIdx].id), { order: idx });
+  await batch.commit();
+  loadWardex();
+}
+
+function openEnemyModal(enemy = null) {
+  editingEnemyId = enemy ? enemy.id : null;
+  document.getElementById("wardex-modal-title").textContent = enemy ? "Edit Enemy" : "Add Enemy";
+  document.getElementById("wardex-enemy-name").value = enemy ? (enemy.name || "") : "";
+  document.getElementById("wardex-enemy-difficulty").value = enemy && enemy.difficulty != null ? enemy.difficulty : "";
+  document.getElementById("wardex-enemy-speed").value = enemy && enemy.movementSpeed != null ? enemy.movementSpeed : "";
+  document.getElementById("wardex-enemy-range").value = enemy && enemy.range != null ? enemy.range : "";
+  document.getElementById("wardex-enemy-health").value = enemy && enemy.health != null ? enemy.health : "";
+
+  const atkList = document.getElementById("wardex-attacks-list");
+  atkList.innerHTML = "";
+  if (enemy && enemy.attacks) enemy.attacks.forEach(atk => addAttackRow(atk));
+
+  document.getElementById("wardex-enemy-modal").classList.remove("hidden");
+  document.getElementById("wardex-enemy-name").focus();
+}
+
+function addAttackRow(atk = null) {
+  const atkList = document.getElementById("wardex-attacks-list");
+  const row = document.createElement("div");
+  row.className = "wardex-attack-row";
+  row.innerHTML =
+    `<div class="wardex-attack-row-fields">` +
+      `<input type="text" class="wardex-atk-name" placeholder="Attack name">` +
+      `<input type="number" class="wardex-atk-range" placeholder="Range">` +
+      `<input type="text" class="wardex-atk-freq" placeholder="Frequency">` +
+      `<input type="number" class="wardex-atk-dmg" placeholder="Damage">` +
+      `<textarea class="wardex-atk-effects" placeholder="Special effects" rows="2"></textarea>` +
+    `</div>` +
+    `<button class="btn btn-small btn-danger wardex-atk-remove">&times;</button>`;
+  if (atk) {
+    row.querySelector(".wardex-atk-name").value = atk.name || "";
+    row.querySelector(".wardex-atk-range").value = atk.range ?? "";
+    row.querySelector(".wardex-atk-freq").value = atk.frequency || "";
+    row.querySelector(".wardex-atk-dmg").value = atk.damage ?? "";
+    row.querySelector(".wardex-atk-effects").value = atk.specialEffects || "";
+  }
+  row.querySelector(".wardex-atk-remove").addEventListener("click", () => row.remove());
+  atkList.appendChild(row);
+}
+
+document.getElementById("wardex-add-attack-btn").addEventListener("click", () => addAttackRow());
+
+document.getElementById("wardex-modal-cancel").addEventListener("click", () => {
+  document.getElementById("wardex-enemy-modal").classList.add("hidden");
+  editingEnemyId = null;
+});
+
+document.getElementById("wardex-modal-save").addEventListener("click", async () => {
+  if (!isAdmin) return;
+  const name = document.getElementById("wardex-enemy-name").value.trim();
+  if (!name) { alert("Please enter an enemy name."); return; }
+
+  const difficulty = parseInt(document.getElementById("wardex-enemy-difficulty").value) || 0;
+  const movementSpeed = parseInt(document.getElementById("wardex-enemy-speed").value) || 0;
+  const range = parseInt(document.getElementById("wardex-enemy-range").value) || 0;
+  const health = parseInt(document.getElementById("wardex-enemy-health").value) || 0;
+
+  const attacks = [];
+  document.querySelectorAll(".wardex-attack-row").forEach(row => {
+    const atkName = row.querySelector(".wardex-atk-name").value.trim();
+    if (!atkName) return;
+    attacks.push({
+      name: atkName,
+      range: parseInt(row.querySelector(".wardex-atk-range").value) || 0,
+      frequency: row.querySelector(".wardex-atk-freq").value.trim(),
+      damage: parseInt(row.querySelector(".wardex-atk-dmg").value) || 0,
+      specialEffects: row.querySelector(".wardex-atk-effects").value.trim()
+    });
+  });
+
+  const saveBtn = document.getElementById("wardex-modal-save");
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Saving...";
+
+  try {
+    if (editingEnemyId) {
+      await db.collection("wardex").doc(editingEnemyId).update({
+        name, difficulty, movementSpeed, range, health, attacks
+      });
+    } else {
+      const countSnap = await db.collection("wardex").where("category", "==", currentWardexCategory).get();
+      await db.collection("wardex").add({
+        name, difficulty, movementSpeed, range, health, attacks,
+        category: currentWardexCategory,
+        order: countSnap.size
+      });
+    }
+    document.getElementById("wardex-enemy-modal").classList.add("hidden");
+    editingEnemyId = null;
+    loadWardex();
+  } catch (e) {
+    alert("Error saving enemy: " + e.message);
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = "Save";
+  }
+});
+
+// Category subtab switching
+document.querySelectorAll(".wardex-cat-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".wardex-cat-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentWardexCategory = btn.dataset.cat;
+    loadWardex();
+  });
+});
+
+// Sort mode switching
+document.querySelectorAll(".wardex-sort-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".wardex-sort-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    wardexSortMode = btn.dataset.sort;
+    loadWardex();
+  });
+});
+
+document.getElementById("wardex-add-btn").addEventListener("click", () => openEnemyModal());
 
 // ============================================
 // CHAT

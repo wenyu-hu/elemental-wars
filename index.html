@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Elemental Wars - Stat Tracker v1.4.2</title>
+  <title>Elemental Wars - Stat Tracker v1.5.0</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
   <div id="auth-screen" class="screen active">
     <div class="auth-container">
       <h1 class="game-title">Elemental Wars</h1>
-      <p class="subtitle">Stat Tracker <span class="version-tag">v1.4.2</span></p>
+      <p class="subtitle">Stat Tracker <span class="version-tag">v1.5.0</span></p>
       <div class="auth-box">
         <div class="auth-tabs">
           <button class="auth-tab active" data-tab="login">Log In</button>
@@ -37,7 +37,7 @@
   <!-- ==================== DASHBOARD ==================== -->
   <div id="dashboard-screen" class="screen">
     <header class="top-bar">
-      <h2 class="logo">Elemental Wars <span class="version-tag">v1.4.2</span></h2>
+      <h2 class="logo">Elemental Wars <span class="version-tag">v1.5.0</span></h2>
       <div class="top-bar-right">
         <span id="current-user-display"></span>
         <button id="logout-btn" class="btn btn-small">Log Out</button>
@@ -60,6 +60,7 @@
           <button class="main-tab-btn active" data-tab="sheet">&#x1F4CB; Status Sheet</button>
           <button class="main-tab-btn" data-tab="news">&#x1F4F0; News<span class="news-notification-badge hidden" id="news-notification-badge"></span></button>
           <button class="main-tab-btn" data-tab="chat">&#x1F4AC; Chat<span class="chat-notification-badge hidden" id="chat-notification-badge"></span></button>
+          <button class="main-tab-btn" data-tab="wardex">&#x2694; Wardex</button>
         </nav>
 
         <!-- Status Sheet Tab -->
@@ -552,6 +553,35 @@
           </div>
         </div>
 
+        <!-- Wardex Tab -->
+        <div id="main-tab-wardex" class="main-tab-content hidden">
+          <div class="wardex-container">
+            <div class="wardex-header">
+              <h2 class="wardex-title">&#x2694; Wardex</h2>
+              <button id="wardex-add-btn" class="btn btn-primary hidden">+ Add Enemy</button>
+            </div>
+            <div class="wardex-category-tabs" id="wardex-category-tabs">
+              <button class="wardex-cat-btn active" data-cat="fire">&#x1F525; Fire</button>
+              <button class="wardex-cat-btn" data-cat="water">&#x1F4A7; Water</button>
+              <button class="wardex-cat-btn" data-cat="air">&#x1F4A8; Air</button>
+              <button class="wardex-cat-btn" data-cat="earth">&#x1F30D; Earth</button>
+              <button class="wardex-cat-btn" data-cat="light">&#x2728; Light</button>
+              <button class="wardex-cat-btn" data-cat="shadow">&#x1F311; Shadow</button>
+              <button class="wardex-cat-btn" data-cat="stone">&#x1FAA8; Stone</button>
+              <button class="wardex-cat-btn" data-cat="ice">&#x2744; Ice</button>
+              <button class="wardex-cat-btn" data-cat="electricity">&#x26A1; Electricity</button>
+              <button class="wardex-cat-btn" data-cat="miscellaneous">&#x1F4E6; Misc</button>
+              <button class="wardex-cat-btn" data-cat="special">&#x2B50; Special</button>
+            </div>
+            <div class="wardex-sort-row">
+              <span class="wardex-sort-label">Sort:</span>
+              <button class="wardex-sort-btn active" data-sort="difficulty">By Difficulty</button>
+              <button class="wardex-sort-btn" data-sort="manual">Manual</button>
+            </div>
+            <div id="wardex-enemy-list"></div>
+          </div>
+        </div>
+
       </main>
     </div>
   </div>
@@ -713,6 +743,46 @@
       <div class="modal-buttons" style="margin-top:16px;">
         <button class="btn btn-small" id="admin-delete-cancel">Cancel</button>
         <button class="btn btn-small btn-danger" id="admin-delete-confirm">Delete User</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wardex Enemy Modal -->
+  <div id="wardex-enemy-modal" class="modal hidden">
+    <div class="modal-content wardex-modal-content">
+      <h3 id="wardex-modal-title">Add Enemy</h3>
+      <div class="wardex-modal-grid">
+        <div class="inv-modal-row wardex-modal-full">
+          <label>Name</label>
+          <input type="text" id="wardex-enemy-name" placeholder="Enemy name" autocomplete="off">
+        </div>
+        <div class="inv-modal-row">
+          <label>Difficulty</label>
+          <input type="number" id="wardex-enemy-difficulty" min="0" placeholder="—">
+        </div>
+        <div class="inv-modal-row">
+          <label>Movement Speed</label>
+          <input type="number" id="wardex-enemy-speed" min="0" placeholder="—">
+        </div>
+        <div class="inv-modal-row">
+          <label>Range</label>
+          <input type="number" id="wardex-enemy-range" min="0" placeholder="—">
+        </div>
+        <div class="inv-modal-row">
+          <label>Health</label>
+          <input type="number" id="wardex-enemy-health" min="0" placeholder="—">
+        </div>
+      </div>
+      <div class="wardex-attacks-section">
+        <div class="wardex-attacks-header">
+          <span class="wardex-attacks-label">Attacks</span>
+          <button class="btn btn-small" id="wardex-add-attack-btn">+ Add Attack</button>
+        </div>
+        <div id="wardex-attacks-list"></div>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn btn-small" id="wardex-modal-cancel">Cancel</button>
+        <button class="btn btn-primary btn-small" id="wardex-modal-save">Save</button>
       </div>
     </div>
   </div>
