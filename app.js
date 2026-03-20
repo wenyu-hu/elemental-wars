@@ -2266,12 +2266,12 @@ document.getElementById("admin-delete-user-btn").addEventListener("click", () =>
   document.getElementById("admin-delete-target").textContent = viewingUser;
   document.getElementById("admin-delete-password").value = "";
   document.getElementById("admin-delete-error").textContent = "";
-  document.getElementById("admin-delete-modal").classList.remove("hidden");
+  document.getElementById("admin-delete-user-modal").classList.remove("hidden");
   document.getElementById("admin-delete-password").focus();
 });
 
 document.getElementById("admin-delete-cancel").addEventListener("click", () => {
-  document.getElementById("admin-delete-modal").classList.add("hidden");
+  document.getElementById("admin-delete-user-modal").classList.add("hidden");
 });
 
 document.getElementById("admin-delete-confirm").addEventListener("click", async () => {
@@ -2315,7 +2315,7 @@ document.getElementById("admin-delete-confirm").addEventListener("click", async 
     batch.delete(db.collection("users").doc(targetUser));
     await batch.commit();
 
-    document.getElementById("admin-delete-modal").classList.add("hidden");
+    document.getElementById("admin-delete-user-modal").classList.add("hidden");
     // Go back to own sheet
     viewingUser = null;
     loadSheet(currentUser, true);
