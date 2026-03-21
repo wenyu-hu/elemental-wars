@@ -1803,14 +1803,14 @@ document.getElementById("news-delete-confirm").addEventListener("click", async (
 // ============================================
 // WARDEX (Enemy Dictionary) — v1.5.0
 // ============================================
-let currentWardexCategory = "fire";
+let currentWardexCategory = "normal";
 let wardexSortMode = "difficulty"; // "difficulty" | "manual"
 let editingEnemyId = null;
 
 const WARDEX_CAT_COLORS = {
-  fire: "#e84057", water: "#44aaff", air: "#aaddff", earth: "#88aa44",
+  normal: "#aaaaaa", fire: "#e84057", water: "#44aaff", air: "#aaddff", earth: "#88aa44",
   light: "#ffe066", shadow: "#9955cc", stone: "#888888", ice: "#77ddff",
-  electricity: "#ffdd00", miscellaneous: "#aaaaaa", special: "#ff77ff"
+  electricity: "#ffdd00", special: "#ff77ff"
 };
 
 function loadWardex() {
