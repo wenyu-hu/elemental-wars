@@ -1915,6 +1915,14 @@ function buildEnemyCard(enemy, idx, total) {
     `<span><span class="wardex-stat-label">HP</span>${enemy.health ?? "—"}</span>`;
   card.appendChild(stats);
 
+  // First Appearance
+  if (enemy.firstAppearance) {
+    const fa = document.createElement("div");
+    fa.className = "wardex-card-first-appearance";
+    fa.innerHTML = `<span class="wardex-stat-label">First Appearance</span>${escapeHtml(enemy.firstAppearance)}`;
+    card.appendChild(fa);
+  }
+
   // Attacks
   if (enemy.attacks && enemy.attacks.length > 0) {
     const atkSection = document.createElement("div");
@@ -1967,6 +1975,7 @@ function openEnemyModal(enemy = null) {
   document.getElementById("wardex-enemy-speed").value = enemy && enemy.movementSpeed != null ? enemy.movementSpeed : "";
   document.getElementById("wardex-enemy-range").value = enemy && enemy.range != null ? enemy.range : "";
   document.getElementById("wardex-enemy-health").value = enemy && enemy.health != null ? enemy.health : "";
+  document.getElementById("wardex-enemy-first-appearance").value = enemy ? (enemy.firstAppearance || "") : "";
 
   const atkList = document.getElementById("wardex-attacks-list");
   atkList.innerHTML = "";
@@ -2016,6 +2025,7 @@ document.getElementById("wardex-modal-save").addEventListener("click", async () 
   const movementSpeed = parseInt(document.getElementById("wardex-enemy-speed").value) || 0;
   const range = parseInt(document.getElementById("wardex-enemy-range").value) || 0;
   const health = parseInt(document.getElementById("wardex-enemy-health").value) || 0;
+  const firstAppearance = document.getElementById("wardex-enemy-first-appearance").value.trim();
 
   const attacks = [];
   document.querySelectorAll(".wardex-attack-row").forEach(row => {
@@ -2037,12 +2047,12 @@ document.getElementById("wardex-modal-save").addEventListener("click", async () 
   try {
     if (editingEnemyId) {
       await db.collection("wardex").doc(editingEnemyId).update({
-        name, difficulty, movementSpeed, range, health, attacks
+        name, difficulty, movementSpeed, range, health, firstAppearance, attacks
       });
     } else {
       const countSnap = await db.collection("wardex").where("category", "==", currentWardexCategory).get();
       await db.collection("wardex").add({
-        name, difficulty, movementSpeed, range, health, attacks,
+        name, difficulty, movementSpeed, range, health, firstAppearance, attacks,
         category: currentWardexCategory,
         order: countSnap.size
       });

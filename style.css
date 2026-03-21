@@ -1944,6 +1944,13 @@ input[type="number"] { -moz-appearance: textfield; }
   letter-spacing: 0.03em;
 }
 
+.wardex-card-first-appearance {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-bottom: 10px;
+}
+
 /* --- Attacks on card --- */
 .wardex-card-attacks {
   border-top: 1px solid var(--border);
