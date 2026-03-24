@@ -173,6 +173,27 @@ function showScreen(id) {
 }
 
 // ============================================
+// PLAYER ID
+// ============================================
+async function generatePlayerId() {
+  while (true) {
+    const id = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
+    const snap = await db.collection("users").where("playerId", "==", id).get();
+    if (snap.empty) return id;
+  }
+}
+
+async function ensurePlayerId() {
+  const doc = await db.collection("users").doc(currentUser).get();
+  if (doc.exists && !doc.data().playerId) {
+    const id = await generatePlayerId();
+    await db.collection("users").doc(currentUser).update({ playerId: id });
+    const el = document.getElementById("sheet-playerid");
+    if (el) el.textContent = `#${id}`;
+  }
+}
+
+// ============================================
 // AUTH
 // ============================================
 const authForm = document.getElementById("auth-form");
@@ -218,8 +239,10 @@ authForm.addEventListener("submit", async (e) => {
         return;
       }
       // Create user
+      const newPlayerId = await generatePlayerId();
       await db.collection("users").doc(username).set({
         passwordHash: pwHash,
+        playerId: newPlayerId,
         ...defaultProfile()
       });
       currentUser = username;
@@ -251,7 +274,8 @@ function onLogin() {
   initUserList();
   loadSheet(currentUser, true);
   checkAdmin();
-  initChat(); // start notification listener immediately, even before Chat tab is opened
+  initChat();
+  ensurePlayerId(); // start notification listener immediately, even before Chat tab is opened
   initNewsListener();
   // Set online status and start heartbeat
   db.collection("users").doc(currentUser).update({
@@ -372,6 +396,7 @@ async function loadSheet(username, editable) {
 
   // Header
   document.getElementById("sheet-username").textContent = username;
+  document.getElementById("sheet-playerid").textContent = data.playerId ? `#${data.playerId}` : "";
   document.getElementById("level-input").value = data.level != null ? data.level : "";
   document.getElementById("tokens-input").value = data.tokens != null ? data.tokens : "";
   document.getElementById("booster-input").value = data.boosterPoints != null ? data.boosterPoints : "";
