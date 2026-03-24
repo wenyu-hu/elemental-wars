@@ -2075,6 +2075,28 @@ input[type="number"] { -moz-appearance: textfield; }
   overflow-y: auto;
 }
 
+.wardex-modal-content input[type="text"],
+.wardex-modal-content input[type="number"],
+.wardex-modal-content textarea {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.wardex-modal-content input[type="text"]:focus,
+.wardex-modal-content input[type="number"]:focus,
+.wardex-modal-content textarea:focus {
+  border-color: var(--accent);
+}
+
 .wardex-modal-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
