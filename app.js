@@ -238,15 +238,17 @@ authForm.addEventListener("submit", async (e) => {
         authError.textContent = "That password is already in use. Choose a different one.";
         return;
       }
-      // Create user
+      // Create user (pending admin approval)
       const newPlayerId = await generatePlayerId();
       await db.collection("users").doc(username).set({
         passwordHash: pwHash,
         playerId: newPlayerId,
+        status: "pending",
         ...defaultProfile()
       });
-      currentUser = username;
-      onLogin();
+      document.getElementById("username-input").value = "";
+      document.getElementById("password-input").value = "";
+      document.getElementById("auth-pending-msg").classList.remove("hidden");
     } else {
       // Login
       const userDoc = await db.collection("users").doc(username).get();
@@ -256,6 +258,10 @@ authForm.addEventListener("submit", async (e) => {
       }
       if (userDoc.data().passwordHash !== pwHash) {
         authError.textContent = "Incorrect password.";
+        return;
+      }
+      if (userDoc.data().status === "pending") {
+        authError.textContent = "Your account is awaiting admin approval.";
         return;
       }
       currentUser = username;
@@ -297,6 +303,7 @@ document.getElementById("logout-btn").addEventListener("click", () => {
   if (currentUser) db.collection("users").doc(currentUser).update({ online: false });
   clearInterval(statusHeartbeat); statusHeartbeat = null;
   if (userListUnsubscribe) { userListUnsubscribe(); userListUnsubscribe = null; }
+  if (pendingApprovalsUnsubscribe) { pendingApprovalsUnsubscribe(); pendingApprovalsUnsubscribe = null; }
   localStorage.removeItem("ewUser");
   currentUser = null;
   viewingUser = null;
@@ -304,9 +311,12 @@ document.getElementById("logout-btn").addEventListener("click", () => {
   userListData = {};
   allUsernames = [];
   document.getElementById("add-news-btn").classList.add("hidden");
+  document.getElementById("pending-approvals-btn").classList.add("hidden");
+  document.getElementById("pending-badge").textContent = "";
   document.getElementById("username-input").value = "";
   document.getElementById("password-input").value = "";
   authError.textContent = "";
+  document.getElementById("auth-pending-msg").classList.add("hidden");
   showScreen("auth-screen");
 });
 
@@ -351,6 +361,7 @@ function initUserList() {
     userListData = {};
     allUsernames = [];
     snap.forEach(doc => {
+      if (doc.data().status === "pending") return;
       userListData[doc.id] = doc.data();
       allUsernames.push(doc.id);
     });
@@ -1584,7 +1595,76 @@ function checkAdmin() {
   isAdmin = currentUser === ADMIN_USERNAME;
   document.getElementById("add-news-btn").classList.toggle("hidden", !isAdmin);
   document.getElementById("wardex-add-btn").classList.toggle("hidden", !isAdmin);
+  document.getElementById("pending-approvals-btn").classList.toggle("hidden", !isAdmin);
+  if (isAdmin) watchPendingApprovals();
 }
+
+let pendingApprovalsUnsubscribe = null;
+
+function watchPendingApprovals() {
+  if (pendingApprovalsUnsubscribe) pendingApprovalsUnsubscribe();
+  pendingApprovalsUnsubscribe = db.collection("users")
+    .where("status", "==", "pending")
+    .onSnapshot(snap => {
+      const count = snap.size;
+      const badge = document.getElementById("pending-badge");
+      if (badge) badge.textContent = count > 0 ? count : "";
+    });
+}
+
+async function renderPendingApprovals() {
+  const list = document.getElementById("pending-approvals-list");
+  list.innerHTML = '<p class="wardex-empty">Loading...</p>';
+  const snap = await db.collection("users").where("status", "==", "pending").get();
+  if (snap.empty) {
+    list.innerHTML = '<p class="wardex-empty">No pending registrations.</p>';
+    return;
+  }
+  list.innerHTML = "";
+  snap.forEach(doc => {
+    const username = doc.id;
+    const div = document.createElement("div");
+    div.className = "pending-user-row";
+    div.innerHTML = `<span class="pending-username">${escapeHtml(username)}</span>
+      <div class="pending-actions">
+        <button class="btn btn-small btn-approve">Approve</button>
+        <button class="btn btn-small btn-danger">Reject</button>
+      </div>`;
+    div.querySelector(".btn-approve").addEventListener("click", () => approveUser(username, div));
+    div.querySelector(".btn-danger").addEventListener("click", () => rejectUser(username, div));
+    list.appendChild(div);
+  });
+}
+
+async function approveUser(username, rowEl) {
+  rowEl.style.opacity = "0.5";
+  try {
+    await db.collection("users").doc(username).update({ status: "approved" });
+    rowEl.remove();
+    const list = document.getElementById("pending-approvals-list");
+    if (!list.children.length) list.innerHTML = '<p class="wardex-empty">No pending registrations.</p>';
+  } catch (e) { rowEl.style.opacity = "1"; alert("Error: " + e.message); }
+}
+
+async function rejectUser(username, rowEl) {
+  if (!confirm(`Reject and delete registration for "${username}"?`)) return;
+  rowEl.style.opacity = "0.5";
+  try {
+    await db.collection("users").doc(username).delete();
+    rowEl.remove();
+    const list = document.getElementById("pending-approvals-list");
+    if (!list.children.length) list.innerHTML = '<p class="wardex-empty">No pending registrations.</p>';
+  } catch (e) { rowEl.style.opacity = "1"; alert("Error: " + e.message); }
+}
+
+document.getElementById("pending-approvals-btn").addEventListener("click", () => {
+  renderPendingApprovals();
+  document.getElementById("pending-approvals-modal").classList.remove("hidden");
+});
+
+document.getElementById("pending-approvals-close").addEventListener("click", () => {
+  document.getElementById("pending-approvals-modal").classList.add("hidden");
+});
 
 function formatNewsTimestamp(ts) {
   if (!ts) return "";
@@ -2660,7 +2740,7 @@ window.addEventListener("beforeunload", () => {
   if (!savedUser) return;
   try {
     const doc = await db.collection("users").doc(savedUser).get();
-    if (doc.exists) {
+    if (doc.exists && doc.data().status !== "pending") {
       currentUser = savedUser;
       onLogin();
     } else {

@@ -145,6 +145,65 @@ body {
   min-height: 1.2em;
 }
 
+.auth-pending-msg {
+  color: #ffcc44;
+  font-size: 0.85rem;
+  margin-top: 10px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.pending-approvals-btn {
+  width: 100%;
+  margin-top: 10px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.pending-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--danger);
+  color: #fff;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.pending-badge:empty { display: none; }
+
+.pending-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.pending-user-row:last-child { border-bottom: none; }
+
+.pending-username {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pending-actions { display: flex; gap: 8px; }
+
+.btn-approve {
+  background: #3aa34a;
+  color: #fff;
+  border-color: #3aa34a;
+}
+
+.btn-approve:hover { background: #2e8a3c; }
+
 /* ============ BUTTONS ============ */
 .btn {
   border: none;

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Elemental Wars - Stat Tracker v1.5.3</title>
+  <title>Elemental Wars - Stat Tracker v1.5.4</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
   <div id="auth-screen" class="screen active">
     <div class="auth-container">
       <h1 class="game-title">Elemental Wars</h1>
-      <p class="subtitle">Stat Tracker <span class="version-tag">v1.5.3</span></p>
+      <p class="subtitle">Stat Tracker <span class="version-tag">v1.5.4</span></p>
       <div class="auth-box">
         <div class="auth-tabs">
           <button class="auth-tab active" data-tab="login">Log In</button>
@@ -29,6 +29,7 @@
           </div>
           <button type="submit" id="auth-submit-btn" class="btn btn-primary">Log In</button>
           <p id="auth-error" class="error-msg"></p>
+          <p id="auth-pending-msg" class="auth-pending-msg hidden">Your registration is awaiting admin approval. You'll be able to log in once it's approved.</p>
         </form>
       </div>
     </div>
@@ -37,7 +38,7 @@
   <!-- ==================== DASHBOARD ==================== -->
   <div id="dashboard-screen" class="screen">
     <header class="top-bar">
-      <h2 class="logo">Elemental Wars <span class="version-tag">v1.5.3</span></h2>
+      <h2 class="logo">Elemental Wars <span class="version-tag">v1.5.4</span></h2>
       <div class="top-bar-right">
         <span id="current-user-display"></span>
         <button id="logout-btn" class="btn btn-small">Log Out</button>
@@ -51,6 +52,7 @@
         <h3>Players</h3>
         <input type="text" id="user-search" placeholder="Search players..." autocomplete="off">
         <ul id="user-list"></ul>
+        <button id="pending-approvals-btn" class="btn btn-small pending-approvals-btn hidden">&#x23F3; Approvals<span id="pending-badge" class="pending-badge"></span></button>
       </aside>
 
       <!-- Main Content -->
@@ -727,6 +729,17 @@
       <div class="modal-buttons" style="margin-top:16px;">
         <button class="btn btn-small" id="delete-account-cancel">Cancel</button>
         <button class="btn btn-small btn-danger" id="delete-account-confirm">Delete My Account</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending Approvals Modal -->
+  <div id="pending-approvals-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Pending Registrations</h3>
+      <div id="pending-approvals-list"></div>
+      <div class="modal-buttons" style="margin-top:16px;">
+        <button class="btn btn-small" id="pending-approvals-close">Close</button>
       </div>
     </div>
   </div>
