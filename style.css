@@ -2018,6 +2018,12 @@ input[type="number"] { -moz-appearance: textfield; }
   margin-bottom: 10px;
 }
 
+.wardex-card-specialities {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
 /* --- Attacks on card --- */
 .wardex-card-attacks {
   border-top: 1px solid var(--border);
