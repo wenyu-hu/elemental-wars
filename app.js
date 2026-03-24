@@ -201,6 +201,18 @@ const authError = document.getElementById("auth-error");
 const authSubmitBtn = document.getElementById("auth-submit-btn");
 let authMode = "login"; // "login" or "register"
 
+const REGISTER_COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+function getRegisterCooldownMsg() {
+  const last = parseInt(localStorage.getItem("ewLastRegister") || "0");
+  if (!last) return null;
+  const remaining = last + REGISTER_COOLDOWN_MS - Date.now();
+  if (remaining <= 0) return null;
+  const h = Math.floor(remaining / 3600000);
+  const m = Math.floor((remaining % 3600000) / 60000);
+  return h > 0 ? `You can register again in ${h}h ${m}m.` : `You can register again in ${m}m.`;
+}
+
 document.querySelectorAll(".auth-tab").forEach(tab => {
   tab.addEventListener("click", () => {
     document.querySelectorAll(".auth-tab").forEach(t => t.classList.remove("active"));
@@ -208,6 +220,10 @@ document.querySelectorAll(".auth-tab").forEach(tab => {
     authMode = tab.dataset.tab;
     authSubmitBtn.textContent = authMode === "login" ? "Log In" : "Register";
     authError.textContent = "";
+    if (authMode === "register") {
+      const msg = getRegisterCooldownMsg();
+      if (msg) authError.textContent = msg;
+    }
   });
 });
 
@@ -226,6 +242,9 @@ authForm.addEventListener("submit", async (e) => {
 
   try {
     if (authMode === "register") {
+      // Check cooldown
+      const cooldownMsg = getRegisterCooldownMsg();
+      if (cooldownMsg) { authError.textContent = cooldownMsg; return; }
       // Check if username exists
       const userDoc = await db.collection("users").doc(username).get();
       if (userDoc.exists) {
@@ -246,6 +265,7 @@ authForm.addEventListener("submit", async (e) => {
         status: "pending",
         ...defaultProfile()
       });
+      localStorage.setItem("ewLastRegister", Date.now().toString());
       document.getElementById("username-input").value = "";
       document.getElementById("password-input").value = "";
       document.getElementById("auth-pending-msg").classList.remove("hidden");
