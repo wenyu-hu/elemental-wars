@@ -1616,6 +1616,7 @@ function checkAdmin() {
   document.getElementById("add-news-btn").classList.toggle("hidden", !isAdmin);
   document.getElementById("wardex-add-btn").classList.toggle("hidden", !isAdmin);
   document.getElementById("pending-approvals-btn").classList.toggle("hidden", !isAdmin);
+  document.querySelector(".wardex-sort-row").classList.toggle("hidden", !isAdmin);
   if (isAdmin) watchPendingApprovals();
 }
 
@@ -1995,7 +1996,7 @@ function buildEnemyCard(enemy, idx, total) {
     const actions = document.createElement("div");
     actions.className = "wardex-card-actions";
 
-    if (wardexSortMode === "manual") {
+    if (isAdmin && wardexSortMode === "manual") {
       const upBtn = document.createElement("button");
       upBtn.className = "btn btn-small wardex-order-btn";
       upBtn.textContent = "↑";
