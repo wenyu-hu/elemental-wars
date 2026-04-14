@@ -324,6 +324,10 @@ document.getElementById("logout-btn").addEventListener("click", () => {
   clearInterval(statusHeartbeat); statusHeartbeat = null;
   if (userListUnsubscribe) { userListUnsubscribe(); userListUnsubscribe = null; }
   if (pendingApprovalsUnsubscribe) { pendingApprovalsUnsubscribe(); pendingApprovalsUnsubscribe = null; }
+  if (chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; }
+  if (chatGroupsUnsubscribe) { chatGroupsUnsubscribe(); chatGroupsUnsubscribe = null; }
+  currentChatConvo = { type: "everyone", id: "everyone", name: "Everyone" };
+  myGroupIds = [];
   localStorage.removeItem("ewUser");
   currentUser = null;
   viewingUser = null;
@@ -352,6 +356,7 @@ function renderUserList(filter) {
     : usernames;
   filtered.forEach(u => {
     const li = document.createElement("li");
+    li.dataset.username = u;
     const dot = document.createElement("span");
     dot.className = "status-dot " + (isUserOnline(userListData[u]) ? "online" : "offline");
     li.appendChild(dot);
@@ -360,12 +365,17 @@ function renderUserList(filter) {
     li.appendChild(nameSpan);
     if ((viewingUser || currentUser) === u) li.classList.add("active");
     li.addEventListener("click", () => {
+      const chatIsActive = !document.getElementById("main-tab-chat").classList.contains("hidden");
+      if (chatIsActive && u !== currentUser) {
+        openConversation("dm", u, u);
+        return;
+      }
       if (u === currentUser) {
         viewingUser = null;
         loadSheet(currentUser, true);
       } else {
         viewingUser = u;
-        loadSheet(u, isAdmin); // admin gets editable view; others get read-only
+        loadSheet(u, isAdmin);
       }
       list.querySelectorAll("li").forEach(l => l.classList.remove("active"));
       li.classList.add("active");
@@ -1583,6 +1593,7 @@ function escapeHtml(str) {
 // ============================================
 document.querySelectorAll(".main-tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
+    const wasInChat = !document.getElementById("main-tab-chat").classList.contains("hidden");
     document.querySelectorAll(".main-tab-btn").forEach(b => b.classList.remove("active"));
     document.querySelectorAll(".main-tab-content").forEach(c => c.classList.add("hidden"));
     btn.classList.add("active");
@@ -1596,10 +1607,20 @@ document.querySelectorAll(".main-tab-btn").forEach(btn => {
       loadWardex();
     }
     if (btn.dataset.tab === "chat") {
+      document.getElementById("chat-groups-section").classList.remove("hidden");
       initChat();
       document.getElementById("chat-notification-badge").classList.add("hidden");
       const feed = document.getElementById("chat-messages");
       feed.scrollTop = feed.scrollHeight;
+    } else {
+      document.getElementById("chat-groups-section").classList.add("hidden");
+      // Restore sheet-tab active state in user list when leaving chat
+      if (wasInChat) {
+        const list = document.getElementById("user-list");
+        list.querySelectorAll("li").forEach(li => {
+          li.classList.toggle("active", li.dataset.username === (viewingUser || currentUser));
+        });
+      }
     }
   });
 });
@@ -1619,6 +1640,7 @@ function checkAdmin() {
   document.getElementById("wardex-add-btn").classList.toggle("hidden", !isAdmin);
   document.getElementById("pending-approvals-btn").classList.toggle("hidden", !isAdmin);
   document.querySelector(".wardex-sort-row").classList.toggle("hidden", !isAdmin);
+  document.getElementById("chat-new-group-btn").classList.toggle("hidden", !isAdmin);
   if (isAdmin) watchPendingApprovals();
 }
 
@@ -2229,9 +2251,98 @@ document.getElementById("wardex-add-btn").addEventListener("click", () => openEn
 // CHAT
 // ============================================
 let chatUnsubscribe = null;
-let replyingTo = null;       // { id, username, text }
+let chatGroupsUnsubscribe = null;
+let replyingTo = null;
 let editingMsgId = null;
 let chatImageFile = null;
+let currentChatConvo = { type: "everyone", id: "everyone", name: "Everyone" };
+let myGroupIds = [];
+
+function isMessageInConvo(data, convo) {
+  if (convo.type === "everyone") {
+    return !data.groupId && (!data.recipient || data.recipient === "everyone");
+  }
+  if (convo.type === "dm") {
+    const other = convo.id;
+    return !data.groupId && (
+      (data.username === other && data.recipient === currentUser) ||
+      (data.username === currentUser && data.recipient === other)
+    );
+  }
+  if (convo.type === "group") {
+    return data.groupId === convo.id;
+  }
+  return false;
+}
+
+function updateChatActiveStates() {
+  document.querySelectorAll("#user-list li").forEach(li => {
+    li.classList.toggle("active",
+      currentChatConvo.type === "dm" && li.dataset.username === currentChatConvo.id
+    );
+  });
+  document.querySelectorAll("#chat-groups-list .chat-group-item").forEach(li => {
+    const gid = li.dataset.groupId;
+    li.classList.toggle("active",
+      (currentChatConvo.type === "everyone" && gid === "everyone") ||
+      (currentChatConvo.type === "group" && gid === currentChatConvo.id)
+    );
+  });
+}
+
+function openConversation(type, id, name) {
+  currentChatConvo = { type, id, name };
+  const iconEl = document.getElementById("chat-convo-icon");
+  const nameEl = document.getElementById("chat-convo-name");
+  if (iconEl) iconEl.textContent = type === "dm" ? "@" : "#";
+  if (nameEl) nameEl.textContent = name;
+  updateChatActiveStates();
+
+  if (chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; }
+
+  const feed = document.getElementById("chat-messages");
+  feed.innerHTML = `<div class="chat-empty">Loading...</div>`;
+
+  let firstLoad = true;
+  chatUnsubscribe = db.collection("chat")
+    .orderBy("createdAt", "asc")
+    .onSnapshot(snap => {
+      if (!firstLoad) {
+        snap.docChanges().forEach(change => {
+          if (change.type !== "added") return;
+          const data = change.doc.data();
+          if (data.username === currentUser) return;
+          const chatHidden = document.getElementById("main-tab-chat").classList.contains("hidden");
+          if (!chatHidden && isMessageInConvo(data, currentChatConvo)) return;
+          const isForMe = data.recipient === currentUser;
+          const mentionsMe = data.text && data.text.includes(`@${currentUser}`);
+          const everyonePing = (!data.recipient || data.recipient === "everyone") && !data.groupId && data.text && data.text.includes("@everyone");
+          const isMyGroupMsg = data.groupId && myGroupIds.includes(data.groupId);
+          if (isForMe || mentionsMe || everyonePing || isMyGroupMsg) {
+            document.getElementById("chat-notification-badge").classList.remove("hidden");
+          }
+        });
+      }
+      firstLoad = false;
+
+      feed.innerHTML = "";
+      let hasVisible = false;
+      snap.forEach(doc => {
+        const data = doc.data();
+        if (isMessageInConvo(data, currentChatConvo)) {
+          feed.appendChild(buildChatBubble(doc.id, data));
+          hasVisible = true;
+        }
+      });
+      if (!hasVisible) {
+        feed.innerHTML = `<div class="chat-empty">No messages yet.</div>`;
+      }
+      feed.scrollTop = feed.scrollHeight;
+    }, err => {
+      feed.innerHTML = `<div class="chat-empty">Error loading chat.</div>`;
+      console.error(err);
+    });
+}
 
 function formatChatTimestamp(ts) {
   if (!ts) return "";
@@ -2249,7 +2360,7 @@ function buildChatBubble(id, data) {
   const wrapper = document.createElement("div");
   const isMentioned = !isOwn && data.text && (
     data.text.includes(`@${currentUser}`) ||
-    ((!data.recipient || data.recipient === "everyone") && data.text.includes("@everyone"))
+    (currentChatConvo.type === "everyone" && data.text.includes("@everyone"))
   );
   wrapper.className = "chat-msg " + (isOwn ? "own" : "other") + (isMentioned ? " mentioned" : "");
   wrapper.dataset.id = id;
@@ -2291,16 +2402,6 @@ function buildChatBubble(id, data) {
     ed.className = "chat-msg-edited";
     ed.textContent = "(edited)";
     wrapper.appendChild(ed);
-  }
-
-  // Private tag
-  if (data.recipient && data.recipient !== "everyone") {
-    const tag = document.createElement("div");
-    tag.className = "chat-msg-private-tag";
-    tag.textContent = isOwn
-      ? `🔒 Private → ${data.recipient}`
-      : `🔒 Private`;
-    wrapper.appendChild(tag);
   }
 
   // Timestamp
@@ -2361,81 +2462,118 @@ function buildChatBubble(id, data) {
   return wrapper;
 }
 
-let chatUsersUnsubscribe = null;
-
 function initChat() {
-  if (chatUnsubscribe) return; // already listening
-  const feed = document.getElementById("chat-messages");
-  feed.innerHTML = `<div class="chat-empty">Loading...</div>`;
-
-  // Populate + live-update recipient dropdown from users collection
-  if (!chatUsersUnsubscribe) {
-    chatUsersUnsubscribe = db.collection("users").onSnapshot(snap => {
-      const select = document.getElementById("chat-recipient");
-      const current = select.value;
-      select.innerHTML = `<option value="everyone">Everyone</option>`;
-      snap.forEach(doc => {
-        if (doc.id !== currentUser && doc.data().status !== "pending") {
-          const opt = document.createElement("option");
-          opt.value = doc.id;
-          opt.textContent = doc.id;
-          select.appendChild(opt);
-        }
-      });
-      // Restore previous selection if still valid
-      if ([...select.options].some(o => o.value === current)) {
-        select.value = current;
-      }
-    });
+  if (!chatGroupsUnsubscribe) loadChatGroups();
+  if (!chatUnsubscribe) openConversation("everyone", "everyone", "Everyone");
+  else {
+    const feed = document.getElementById("chat-messages");
+    feed.scrollTop = feed.scrollHeight;
+    updateChatActiveStates();
   }
+}
 
-  // Listen to messages, filter by visibility
-  let firstLoad = true;
-  chatUnsubscribe = db.collection("chat")
+function loadChatGroups() {
+  const groupList = document.getElementById("chat-groups-list");
+  groupList.innerHTML = "";
+
+  // Always-present "Everyone" item
+  const everyoneLi = document.createElement("li");
+  everyoneLi.className = "chat-group-item";
+  everyoneLi.dataset.groupId = "everyone";
+  everyoneLi.innerHTML = `<span class="chat-group-hash">#</span><span> Everyone</span>`;
+  everyoneLi.addEventListener("click", () => openConversation("everyone", "everyone", "Everyone"));
+  groupList.appendChild(everyoneLi);
+
+  chatGroupsUnsubscribe = db.collection("groups")
+    .where("members", "array-contains", currentUser)
     .orderBy("createdAt", "asc")
     .onSnapshot(snap => {
-      // Notification badge for new @mentions, @everyone, and private messages
-      if (!firstLoad) {
-        snap.docChanges().forEach(change => {
-          if (change.type === "added") {
-            const data = change.doc.data();
-            const chatHidden = document.getElementById("main-tab-chat").classList.contains("hidden");
-            if (chatHidden && data.username !== currentUser) {
-              const isPublic = !data.recipient || data.recipient === "everyone";
-              const mentionsMe = data.text && data.text.includes(`@${currentUser}`);
-              const everyonePing = isPublic && data.text && data.text.includes("@everyone");
-              const privateToMe = data.recipient === currentUser;
-              if (mentionsMe || everyonePing || privateToMe) {
-                document.getElementById("chat-notification-badge").classList.remove("hidden");
-              }
-            }
-          }
-        });
-      }
-      firstLoad = false;
-
-      feed.innerHTML = "";
-      let hasVisible = false;
+      // Remove all group items except Everyone
+      while (groupList.children.length > 1) groupList.removeChild(groupList.lastChild);
+      myGroupIds = [];
       snap.forEach(doc => {
+        myGroupIds.push(doc.id);
         const data = doc.data();
-        // Show if: everyone message, or private between currentUser and other party
-        const isPublic = !data.recipient || data.recipient === "everyone";
-        const isForMe = data.recipient === currentUser;
-        const isMine = data.username === currentUser;
-        if (isPublic || isForMe || (isMine && data.recipient !== "everyone")) {
-          feed.appendChild(buildChatBubble(doc.id, data));
-          hasVisible = true;
+        const li = document.createElement("li");
+        li.className = "chat-group-item";
+        li.dataset.groupId = doc.id;
+
+        const hash = document.createElement("span");
+        hash.className = "chat-group-hash";
+        hash.textContent = "#";
+        li.appendChild(hash);
+
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = " " + data.name;
+        li.appendChild(nameSpan);
+
+        if (isAdmin) {
+          const delBtn = document.createElement("button");
+          delBtn.className = "chat-group-del-btn";
+          delBtn.textContent = "×";
+          delBtn.title = "Delete group";
+          delBtn.addEventListener("click", async e => {
+            e.stopPropagation();
+            if (!confirm(`Delete group "${data.name}"?`)) return;
+            await db.collection("groups").doc(doc.id).delete();
+            if (currentChatConvo.type === "group" && currentChatConvo.id === doc.id) {
+              openConversation("everyone", "everyone", "Everyone");
+            }
+          });
+          li.appendChild(delBtn);
         }
+
+        li.addEventListener("click", () => openConversation("group", doc.id, data.name));
+        groupList.appendChild(li);
       });
-      if (!hasVisible) {
-        feed.innerHTML = `<div class="chat-empty">No messages yet. Say hello!</div>`;
-      }
-      feed.scrollTop = feed.scrollHeight;
-    }, err => {
-      feed.innerHTML = `<div class="chat-empty">Error loading chat.</div>`;
-      console.error(err);
+      updateChatActiveStates();
     });
 }
+
+// Group creation modal
+document.getElementById("chat-new-group-btn").addEventListener("click", () => {
+  const checklist = document.getElementById("group-members-checklist");
+  checklist.innerHTML = "";
+  allUsernames.filter(u => u !== currentUser).forEach(u => {
+    const label = document.createElement("label");
+    label.className = "group-member-check";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.value = u;
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(" " + u));
+    checklist.appendChild(label);
+  });
+  document.getElementById("group-name-input").value = "";
+  document.getElementById("group-create-modal").classList.remove("hidden");
+});
+
+document.getElementById("group-create-cancel").addEventListener("click", () => {
+  document.getElementById("group-create-modal").classList.add("hidden");
+});
+
+document.getElementById("group-create-confirm").addEventListener("click", async () => {
+  const name = document.getElementById("group-name-input").value.trim();
+  if (!name) { alert("Please enter a group name."); return; }
+  const checked = [...document.querySelectorAll("#group-members-checklist input:checked")].map(cb => cb.value);
+  if (checked.length === 0) { alert("Select at least one member."); return; }
+  const btn = document.getElementById("group-create-confirm");
+  btn.disabled = true;
+  try {
+    const ref = await db.collection("groups").add({
+      name,
+      members: [currentUser, ...checked],
+      createdBy: currentUser,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    document.getElementById("group-create-modal").classList.add("hidden");
+    openConversation("group", ref.id, name);
+  } catch (e) {
+    alert("Error creating group: " + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 // Auto-resize textarea + @mention autocomplete
 document.getElementById("chat-input").addEventListener("input", function() {
@@ -2451,9 +2589,8 @@ document.getElementById("chat-input").addEventListener("input", function() {
 
   if (atMatch) {
     const query = atMatch[1].toLowerCase();
-    const recipient = document.getElementById("chat-recipient").value || "everyone";
-    const userMatches = allUsernames.filter(u => u.toLowerCase().startsWith(query)).slice(0, 5);
-    const includeEveryone = recipient === "everyone" && "everyone".startsWith(query);
+    const userMatches = allUsernames.filter(u => u !== currentUser && u.toLowerCase().startsWith(query)).slice(0, 5);
+    const includeEveryone = currentChatConvo.type === "everyone" && "everyone".startsWith(query);
     const matches = includeEveryone ? ["everyone", ...userMatches] : userMatches;
     if (matches.length > 0) {
       dropdown.innerHTML = "";
@@ -2502,11 +2639,8 @@ async function sendChatMessage() {
   if (!text && !chatImageFile) return;
   if (!currentUser) return;
 
-  const recipient = document.getElementById("chat-recipient").value || "everyone";
-
-  // @everyone is only allowed in public messages
-  if (text.includes("@everyone") && recipient !== "everyone") {
-    alert("@everyone can only be used in messages sent to Everyone.");
+  if (text.includes("@everyone") && currentChatConvo.type !== "everyone") {
+    alert("@everyone can only be used in the Everyone channel.");
     return;
   }
 
@@ -2526,12 +2660,19 @@ async function sendChatMessage() {
     const msgData = {
       username: currentUser,
       text: text || "",
-      recipient,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       editedAt: null,
       replyTo: replyingTo || null,
       imageUrl: imageUrl || null
     };
+
+    if (currentChatConvo.type === "everyone") {
+      msgData.recipient = "everyone";
+    } else if (currentChatConvo.type === "dm") {
+      msgData.recipient = currentChatConvo.id;
+    } else if (currentChatConvo.type === "group") {
+      msgData.groupId = currentChatConvo.id;
+    }
 
     await db.collection("chat").add(msgData);
     input.value = "";
