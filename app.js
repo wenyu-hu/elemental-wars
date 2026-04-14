@@ -1598,6 +1598,8 @@ document.querySelectorAll(".main-tab-btn").forEach(btn => {
     if (btn.dataset.tab === "chat") {
       initChat();
       document.getElementById("chat-notification-badge").classList.add("hidden");
+      const feed = document.getElementById("chat-messages");
+      feed.scrollTop = feed.scrollHeight;
     }
   });
 });
@@ -2373,7 +2375,7 @@ function initChat() {
       const current = select.value;
       select.innerHTML = `<option value="everyone">Everyone</option>`;
       snap.forEach(doc => {
-        if (doc.id !== currentUser) {
+        if (doc.id !== currentUser && doc.data().status !== "pending") {
           const opt = document.createElement("option");
           opt.value = doc.id;
           opt.textContent = doc.id;
@@ -2525,7 +2527,7 @@ async function sendChatMessage() {
       username: currentUser,
       text: text || "",
       recipient,
-      createdAt: firebase.firestore.Timestamp.now(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       editedAt: null,
       replyTo: replyingTo || null,
       imageUrl: imageUrl || null
