@@ -2486,12 +2486,17 @@ function loadChatGroups() {
 
   chatGroupsUnsubscribe = db.collection("groups")
     .where("members", "array-contains", currentUser)
-    .orderBy("createdAt", "asc")
     .onSnapshot(snap => {
       // Remove all group items except Everyone
       while (groupList.children.length > 1) groupList.removeChild(groupList.lastChild);
       myGroupIds = [];
-      snap.forEach(doc => {
+      const docs = snap.docs.slice().sort((a, b) => {
+        const ta = a.data().createdAt;
+        const tb = b.data().createdAt;
+        if (!ta || !tb) return 0;
+        return ta.seconds - tb.seconds;
+      });
+      docs.forEach(doc => {
         myGroupIds.push(doc.id);
         const data = doc.data();
         const li = document.createElement("li");
