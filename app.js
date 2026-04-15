@@ -347,41 +347,66 @@ document.getElementById("logout-btn").addEventListener("click", () => {
 // ============================================
 // USER LIST
 // ============================================
-function renderUserList(filter) {
-  const list = document.getElementById("user-list");
-  list.innerHTML = "";
-  const usernames = Object.keys(userListData).sort((a, b) => a.localeCompare(b));
-  const filtered = filter
-    ? usernames.filter(u => u.toLowerCase().includes(filter.toLowerCase()))
-    : usernames;
-  filtered.forEach(u => {
-    const li = document.createElement("li");
-    li.dataset.username = u;
-    const dot = document.createElement("span");
-    dot.className = "status-dot " + (isUserOnline(userListData[u]) ? "online" : "offline");
-    li.appendChild(dot);
-    const nameSpan = document.createElement("span");
-    nameSpan.textContent = u + (u === currentUser ? " (you)" : "");
-    li.appendChild(nameSpan);
-    if ((viewingUser || currentUser) === u) li.classList.add("active");
-    li.addEventListener("click", () => {
-      const chatIsActive = !document.getElementById("main-tab-chat").classList.contains("hidden");
-      if (chatIsActive && u !== currentUser) {
-        openConversation("dm", u, u);
-        return;
-      }
-      if (u === currentUser) {
-        viewingUser = null;
-        loadSheet(currentUser, true);
-      } else {
-        viewingUser = u;
-        loadSheet(u, isAdmin);
-      }
-      list.querySelectorAll("li").forEach(l => l.classList.remove("active"));
-      li.classList.add("active");
-    });
-    list.appendChild(li);
+function makeUserLi(u) {
+  const li = document.createElement("li");
+  li.dataset.username = u;
+  const dot = document.createElement("span");
+  dot.className = "status-dot " + (isUserOnline(userListData[u]) ? "online" : "offline");
+  li.appendChild(dot);
+  const nameSpan = document.createElement("span");
+  nameSpan.textContent = u + (u === currentUser ? " (you)" : "");
+  li.appendChild(nameSpan);
+  if ((viewingUser || currentUser) === u) li.classList.add("active");
+  li.addEventListener("click", () => {
+    const chatIsActive = !document.getElementById("main-tab-chat").classList.contains("hidden");
+    if (chatIsActive && u !== currentUser) {
+      openConversation("dm", u, u);
+      return;
+    }
+    if (u === currentUser) {
+      viewingUser = null;
+      loadSheet(currentUser, true);
+    } else {
+      viewingUser = u;
+      loadSheet(u, isAdmin);
+    }
+    document.querySelectorAll("#user-list li").forEach(l => l.classList.remove("active"));
+    li.classList.add("active");
   });
+  return li;
+}
+
+function renderUserList(filter) {
+  const container = document.getElementById("user-list");
+  container.innerHTML = "";
+
+  const all = Object.keys(userListData).sort((a, b) => a.localeCompare(b));
+  const filtered = filter
+    ? all.filter(u => u.toLowerCase().includes(filter.toLowerCase()))
+    : all;
+
+  const players    = filtered.filter(u => userListData[u].role === "player");
+  const guests     = filtered.filter(u => userListData[u].role === "guest");
+  const unassigned = filtered.filter(u => !userListData[u].role);
+
+  function makeSection(label, users, showIfEmpty = false) {
+    if (!showIfEmpty && users.length === 0) return;
+    const section = document.createElement("div");
+    section.className = "user-section";
+    const header = document.createElement("div");
+    header.className = "user-section-header";
+    header.textContent = label;
+    section.appendChild(header);
+    const ul = document.createElement("ul");
+    ul.className = "user-section-list";
+    users.forEach(u => ul.appendChild(makeUserLi(u)));
+    section.appendChild(ul);
+    container.appendChild(section);
+  }
+
+  makeSection("Players", players, true);
+  makeSection("Guests", guests);
+  if (isAdmin) makeSection("Unassigned", unassigned);
 }
 
 function initUserList() {
@@ -413,10 +438,12 @@ async function loadSheet(username, editable) {
 
   // Toggle read-only; admin editing another user still shows banner
   const adminDelBtn = document.getElementById("admin-delete-user-btn");
+  const adminRoleSelect = document.getElementById("admin-role-select");
   if (username === currentUser) {
     sheet.classList.remove("read-only");
     banner.classList.add("hidden");
     adminDelBtn.classList.add("hidden");
+    adminRoleSelect.classList.add("hidden");
   } else if (isAdmin) {
     sheet.classList.remove("read-only");
     banner.classList.remove("hidden");
@@ -425,6 +452,8 @@ async function loadSheet(username, editable) {
     document.getElementById("banner-mode").textContent = "(admin)";
     document.getElementById("banner-mode").style.color = "var(--accent)";
     adminDelBtn.classList.remove("hidden");
+    adminRoleSelect.classList.remove("hidden");
+    adminRoleSelect.value = data.role || "player";
   } else {
     sheet.classList.add("read-only");
     banner.classList.remove("hidden");
@@ -433,6 +462,7 @@ async function loadSheet(username, editable) {
     document.getElementById("banner-mode").textContent = "(read-only)";
     document.getElementById("banner-mode").style.color = "";
     adminDelBtn.classList.add("hidden");
+    adminRoleSelect.classList.add("hidden");
   }
 
   // Header
@@ -1616,8 +1646,7 @@ document.querySelectorAll(".main-tab-btn").forEach(btn => {
       document.getElementById("chat-groups-section").classList.add("hidden");
       // Restore sheet-tab active state in user list when leaving chat
       if (wasInChat) {
-        const list = document.getElementById("user-list");
-        list.querySelectorAll("li").forEach(li => {
+        document.querySelectorAll("#user-list li[data-username]").forEach(li => {
           li.classList.toggle("active", li.dataset.username === (viewingUser || currentUser));
         });
       }
@@ -1672,19 +1701,21 @@ async function renderPendingApprovals() {
     div.className = "pending-user-row";
     div.innerHTML = `<span class="pending-username">${escapeHtml(username)}</span>
       <div class="pending-actions">
-        <button class="btn btn-small btn-approve">Approve</button>
+        <button class="btn btn-small btn-approve-player">Approve (Player)</button>
+        <button class="btn btn-small btn-approve-guest">Approve (Guest)</button>
         <button class="btn btn-small btn-danger">Reject</button>
       </div>`;
-    div.querySelector(".btn-approve").addEventListener("click", () => approveUser(username, div));
+    div.querySelector(".btn-approve-player").addEventListener("click", () => approveUser(username, div, "player"));
+    div.querySelector(".btn-approve-guest").addEventListener("click", () => approveUser(username, div, "guest"));
     div.querySelector(".btn-danger").addEventListener("click", () => rejectUser(username, div));
     list.appendChild(div);
   });
 }
 
-async function approveUser(username, rowEl) {
+async function approveUser(username, rowEl, role = "player") {
   rowEl.style.opacity = "0.5";
   try {
-    await db.collection("users").doc(username).update({ status: "approved" });
+    await db.collection("users").doc(username).update({ status: "approved", role });
     rowEl.remove();
     const list = document.getElementById("pending-approvals-list");
     if (!list.children.length) list.innerHTML = '<p class="wardex-empty">No pending registrations.</p>';
@@ -2276,7 +2307,7 @@ function isMessageInConvo(data, convo) {
 }
 
 function updateChatActiveStates() {
-  document.querySelectorAll("#user-list li").forEach(li => {
+  document.querySelectorAll("#user-list li[data-username]").forEach(li => {
     li.classList.toggle("active",
       currentChatConvo.type === "dm" && li.dataset.username === currentChatConvo.id
     );
@@ -2836,6 +2867,14 @@ document.getElementById("delete-account-confirm").addEventListener("click", asyn
 // ============================================
 // ADMIN DELETE OTHER USER
 // ============================================
+document.getElementById("admin-role-select").addEventListener("change", async function() {
+  if (!isAdmin || !viewingUser) return;
+  const newRole = this.value;
+  try {
+    await db.collection("users").doc(viewingUser).update({ role: newRole });
+  } catch (e) { alert("Error updating role: " + e.message); }
+});
+
 document.getElementById("admin-delete-user-btn").addEventListener("click", () => {
   if (!isAdmin || !viewingUser) return;
   document.getElementById("admin-delete-target").textContent = viewingUser;

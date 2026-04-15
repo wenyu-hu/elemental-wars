@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Elemental Wars - Stat Tracker v1.6.3</title>
+  <title>Elemental Wars - Stat Tracker v1.6.4</title>
   <link rel="icon" href="favicon.png" type="image/png">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -13,7 +13,7 @@
   <div id="auth-screen" class="screen active">
     <div class="auth-container">
       <h1 class="game-title">Elemental Wars</h1>
-      <p class="subtitle">Stat Tracker <span class="version-tag">v1.6.3</span></p>
+      <p class="subtitle">Stat Tracker <span class="version-tag">v1.6.4</span></p>
       <div class="auth-box">
         <div class="auth-tabs">
           <button class="auth-tab active" data-tab="login">Log In</button>
@@ -39,7 +39,7 @@
   <!-- ==================== DASHBOARD ==================== -->
   <div id="dashboard-screen" class="screen">
     <header class="top-bar">
-      <h2 class="logo">Elemental Wars <span class="version-tag">v1.6.3</span></h2>
+      <h2 class="logo">Elemental Wars <span class="version-tag">v1.6.4</span></h2>
       <div class="top-bar-right">
         <span id="current-user-display"></span>
         <button id="logout-btn" class="btn btn-small">Log Out</button>
@@ -50,9 +50,9 @@
     <div class="dashboard-layout">
       <!-- Sidebar: User Directory -->
       <aside class="user-directory">
-        <h3>Players</h3>
-        <input type="text" id="user-search" placeholder="Search players..." autocomplete="off">
-        <ul id="user-list"></ul>
+        <h3>Users</h3>
+        <input type="text" id="user-search" placeholder="Search users..." autocomplete="off">
+        <div id="user-list"></div>
         <div id="chat-groups-section" class="chat-groups-section hidden">
           <div class="chat-groups-header">
             <span>Groups</span>
@@ -78,6 +78,10 @@
         <div id="viewing-banner" class="viewing-banner hidden">
           <span id="banner-verb">Viewing</span> <span id="viewing-username"></span>'s sheet <span id="banner-mode">(read-only)</span>
           <button id="back-to-own" class="btn btn-small">Back to My Sheet</button>
+          <select id="admin-role-select" class="hidden admin-role-select">
+            <option value="player">Player</option>
+            <option value="guest">Guest</option>
+          </select>
           <button id="admin-delete-user-btn" class="btn btn-small btn-danger hidden">Delete This User</button>
         </div>
         <div id="status-sheet">

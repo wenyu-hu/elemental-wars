@@ -326,10 +326,29 @@ body {
 #user-search:focus { border-color: var(--accent); }
 
 #user-list {
-  list-style: none;
+  /* now a div container */
 }
 
-#user-list li {
+.user-section {
+  margin-bottom: 8px;
+}
+
+.user-section-header {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  padding: 8px 4px 4px;
+}
+
+.user-section-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.user-section-list li {
   padding: 8px 10px;
   border-radius: 6px;
   cursor: pointer;
@@ -341,8 +360,8 @@ body {
   gap: 8px;
 }
 
-#user-list li:hover { background: var(--bg-input); }
-#user-list li.active { background: var(--accent); color: #fff; }
+.user-section-list li:hover { background: var(--bg-input); }
+.user-section-list li.active { background: var(--accent); color: #fff; }
 
 /* Status dots */
 .status-dot {
@@ -376,6 +395,17 @@ body {
   justify-content: space-between;
   font-size: 0.9rem;
 }
+
+.admin-role-select {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: #fff;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.admin-role-select option { color: var(--text-primary); background: var(--bg-secondary); }
 
 .viewing-banner .btn-small {
   background: rgba(255,255,255,0.2);
@@ -1450,7 +1480,7 @@ input[type="number"] { -moz-appearance: textfield; }
     flex-wrap: wrap;
   }
 
-  #user-list li {
+  .user-section-list li {
     padding: 6px 10px;
     background: var(--bg-input);
     border-radius: 20px;
