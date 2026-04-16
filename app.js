@@ -2366,7 +2366,7 @@ function showToast(msg) {
 
 function openConversation(type, id, name) {
   // Block cross-role DMs (guest ↔ player)
-  if (type === "dm" && !isAdmin) {
+  if (type === "dm" && !isAdmin && id !== ADMIN_USERNAME) {
     const theirRole = userListData[id]?.role || null;
     if ((currentUserRole === "guest" && theirRole === "player") ||
         (currentUserRole === "player" && theirRole === "guest")) {
