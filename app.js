@@ -380,7 +380,11 @@ function renderUserList(filter) {
   const container = document.getElementById("user-list");
   container.innerHTML = "";
 
-  const all = Object.keys(userListData).sort((a, b) => a.localeCompare(b));
+  const all = Object.keys(userListData).sort((a, b) => {
+    if (a === currentUser) return -1;
+    if (b === currentUser) return 1;
+    return a.localeCompare(b);
+  });
   const filtered = filter
     ? all.filter(u => u.toLowerCase().includes(filter.toLowerCase()))
     : all;
