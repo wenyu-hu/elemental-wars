@@ -415,6 +415,41 @@ body {
 
 .hidden { display: none !important; }
 
+/* Sheet permission overlay */
+.sheet-blurred {
+  filter: blur(10px);
+  pointer-events: none;
+  user-select: none;
+}
+.sheet-permission-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.35);
+  border-radius: 10px;
+}
+.sheet-permission-overlay.hidden { display: none; }
+.sheet-permission-msg {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px 40px;
+  text-align: center;
+  max-width: 320px;
+}
+.sheet-permission-lock {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+.sheet-permission-msg p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
 /* ============ SHEET HEADER ============ */
 .sheet-header {
   display: flex;

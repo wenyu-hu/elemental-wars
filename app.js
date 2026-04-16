@@ -332,6 +332,7 @@ document.getElementById("logout-btn").addEventListener("click", () => {
   currentUser = null;
   viewingUser = null;
   isAdmin = false;
+  currentUserRole = null;
   userListData = {};
   allUsernames = [];
   document.getElementById("add-news-btn").classList.add("hidden");
@@ -425,6 +426,7 @@ function initUserList() {
       allUsernames.push(doc.id);
     });
     allUsernames.sort((a, b) => a.localeCompare(b));
+    currentUserRole = userListData[currentUser]?.role || null;
     renderUserList(searchInput.value);
   });
   searchInput.oninput = () => renderUserList(searchInput.value);
@@ -443,8 +445,30 @@ async function loadSheet(username, editable) {
   // Toggle read-only; admin editing another user still shows banner
   const adminDelBtn = document.getElementById("admin-delete-user-btn");
   const adminRoleSelect = document.getElementById("admin-role-select");
+  const overlay = document.getElementById("sheet-permission-overlay");
+
+  // Guest trying to view a player's sheet → show blur + message
+  const viewedRole = data.role || null;
+  const isBlocked = !isAdmin && username !== currentUser &&
+                    currentUserRole === "guest" && viewedRole === "player";
+  sheet.classList.toggle("sheet-blurred", isBlocked);
+  overlay.classList.toggle("hidden", !isBlocked);
+  if (isBlocked) {
+    // Still show the back button in a minimal banner
+    banner.classList.remove("hidden");
+    document.getElementById("viewing-username").textContent = username;
+    document.getElementById("banner-verb").textContent = "Viewing";
+    document.getElementById("banner-mode").textContent = "(restricted)";
+    document.getElementById("banner-mode").style.color = "var(--danger)";
+    adminDelBtn.classList.add("hidden");
+    adminRoleSelect.classList.add("hidden");
+    return; // don't populate the sheet fields
+  }
+
   if (username === currentUser) {
     sheet.classList.remove("read-only");
+    sheet.classList.remove("sheet-blurred");
+    overlay.classList.add("hidden");
     banner.classList.add("hidden");
     adminDelBtn.classList.add("hidden");
     adminRoleSelect.classList.add("hidden");
@@ -1662,6 +1686,7 @@ document.querySelectorAll(".main-tab-btn").forEach(btn => {
 // NEWS
 // ============================================
 let isAdmin = false;
+let currentUserRole = null; // "player" | "guest" | null
 let editingNewsId = null;
 let pendingDeleteId = null;
 let newsImageFile = null;
