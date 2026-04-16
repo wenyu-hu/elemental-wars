@@ -1540,6 +1540,29 @@ input[type="number"] { -moz-appearance: textfield; }
   .game-title { font-size: 2rem; }
 }
 
+/* Toast notification */
+.toast-notification {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  opacity: 0;
+  transition: opacity 0.25s, transform 0.25s;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast-notification.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 /* ============ CHAT ============ */
 
 /* --- Groups sidebar section (inside user-directory, chat-tab only) --- */

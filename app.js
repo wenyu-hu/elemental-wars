@@ -2350,7 +2350,30 @@ function updateChatActiveStates() {
   });
 }
 
+function showToast(msg) {
+  const existing = document.querySelector(".toast-notification");
+  if (existing) existing.remove();
+  const toast = document.createElement("div");
+  toast.className = "toast-notification";
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add("visible"));
+  setTimeout(() => {
+    toast.classList.remove("visible");
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
 function openConversation(type, id, name) {
+  // Block cross-role DMs (guest ↔ player)
+  if (type === "dm" && !isAdmin) {
+    const theirRole = userListData[id]?.role || null;
+    if ((currentUserRole === "guest" && theirRole === "player") ||
+        (currentUserRole === "player" && theirRole === "guest")) {
+      showToast("Players and Guests cannot message each other directly.");
+      return;
+    }
+  }
   currentChatConvo = { type, id, name };
   const iconEl = document.getElementById("chat-convo-icon");
   const nameEl = document.getElementById("chat-convo-name");
@@ -2522,9 +2545,19 @@ function buildChatBubble(id, data) {
   return wrapper;
 }
 
+function showChatPlaceholder() {
+  if (chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; }
+  currentChatConvo = { type: "none", id: "", name: "" };
+  document.getElementById("chat-convo-icon").textContent = "";
+  document.getElementById("chat-convo-name").textContent = "";
+  document.getElementById("chat-messages").innerHTML =
+    `<div class="chat-empty">Select a conversation from the sidebar.</div>`;
+  updateChatActiveStates();
+}
+
 function initChat() {
   if (!chatGroupsUnsubscribe) loadChatGroups();
-  if (!chatUnsubscribe) openConversation("everyone", "everyone", "Everyone");
+  if (!chatUnsubscribe) showChatPlaceholder();
   else {
     const feed = document.getElementById("chat-messages");
     feed.scrollTop = feed.scrollHeight;
@@ -2535,14 +2568,6 @@ function initChat() {
 function loadChatGroups() {
   const groupList = document.getElementById("chat-groups-list");
   groupList.innerHTML = "";
-
-  // Always-present "Everyone" item
-  const everyoneLi = document.createElement("li");
-  everyoneLi.className = "chat-group-item";
-  everyoneLi.dataset.groupId = "everyone";
-  everyoneLi.innerHTML = `<span class="chat-group-hash">#</span><span> Everyone</span>`;
-  everyoneLi.addEventListener("click", () => openConversation("everyone", "everyone", "Everyone"));
-  groupList.appendChild(everyoneLi);
 
   chatGroupsUnsubscribe = db.collection("groups")
     .where("members", "array-contains", currentUser)
@@ -2582,7 +2607,7 @@ function loadChatGroups() {
             if (!confirm(`Delete group "${data.name}"?`)) return;
             await db.collection("groups").doc(doc.id).delete();
             if (currentChatConvo.type === "group" && currentChatConvo.id === doc.id) {
-              openConversation("everyone", "everyone", "Everyone");
+              showChatPlaceholder();
             }
           });
           li.appendChild(delBtn);
