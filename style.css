@@ -294,6 +294,13 @@ body.anniversary-theme {
   --text-primary: #3d2e05;
   --text-secondary: #6b5518;
   --border: #b38f00;
+  /* Legendary's own gold (#ffcc00) is indistinguishable from the new gold
+     background/cards, so give it a contrasting dark outline in this theme. */
+  --rarity-legendary: #3d2e05;
+}
+
+body.anniversary-theme .inv-cell.rarity-legendary {
+  border-color: #3d2e05;
 }
 
 body.anniversary-theme .top-bar {
