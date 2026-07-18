@@ -275,6 +275,49 @@ body {
   background-clip: text;
 }
 
+/* --- 2nd Anniversary event (Jul 20 - Aug 31, 2026) --- */
+.anniversary-banner {
+  background: #3d2e05;
+  color: #facc4d;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 8px 14px;
+  border-bottom: 1px solid #5a4408;
+}
+
+body.anniversary-theme .top-bar {
+  border-bottom: 2px solid #ffcc00;
+}
+
+body.anniversary-theme .version-tag {
+  background: #ffcc00;
+  color: #412402;
+  -webkit-text-fill-color: #412402;
+}
+
+.anniversary-confetti {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.anniversary-confetti-piece {
+  position: absolute;
+  top: -20px;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  animation: anniversary-confetti-fall linear forwards;
+}
+
+@keyframes anniversary-confetti-fall {
+  from { transform: translateY(0) rotate(0deg); opacity: 1; }
+  to   { transform: translateY(105vh) rotate(540deg); opacity: 0.9; }
+}
+
 .top-bar-right {
   display: flex;
   align-items: center;

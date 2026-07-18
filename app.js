@@ -14,6 +14,49 @@ let statusHeartbeat = null;
 let allUsernames = [];
 let userListData = {};
 
+// --- 2nd Anniversary event (Jul 20 - Aug 31, 2026) ---
+const ANNIVERSARY_START = new Date(2026, 6, 20);   // months are 0-indexed: 6 = July
+const ANNIVERSARY_END   = new Date(2026, 7, 31, 23, 59, 59);
+
+function isAnniversaryWindow() {
+  const now = new Date();
+  return now >= ANNIVERSARY_START && now <= ANNIVERSARY_END;
+}
+
+function applyAnniversaryTheme() {
+  const active = isAnniversaryWindow();
+  document.body.classList.toggle("anniversary-theme", active);
+  document.getElementById("anniversary-banner").classList.toggle("hidden", !active);
+  if (active) fireAnniversaryConfettiOnce();
+}
+
+// One confetti burst per calendar day per browser, so it doesn't replay
+// on every page refresh.
+const CONFETTI_COLORS = ["#ffcc00", "#facc4d", "#e8a800", "#fff3c4"];
+
+function fireAnniversaryConfettiOnce() {
+  const today = new Date().toDateString();
+  if (localStorage.getItem("ewAnniversaryConfettiDate") === today) return;
+  localStorage.setItem("ewAnniversaryConfettiDate", today);
+
+  const container = document.createElement("div");
+  container.className = "anniversary-confetti";
+  document.body.appendChild(container);
+
+  const PIECE_COUNT = 60;
+  for (let i = 0; i < PIECE_COUNT; i++) {
+    const piece = document.createElement("div");
+    piece.className = "anniversary-confetti-piece";
+    piece.style.left = `${Math.random() * 100}vw`;
+    piece.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+    piece.style.animationDelay = `${Math.random() * 0.6}s`;
+    piece.style.animationDuration = `${2.2 + Math.random() * 1.2}s`;
+    container.appendChild(piece);
+  }
+
+  setTimeout(() => container.remove(), 4000);
+}
+
 // --- Emoji map for inventory ---
 const EMOJI_MAP = {
   sword: "\u2694\uFE0F", swords: "\u2694\uFE0F", blade: "\u2694\uFE0F", dagger: "\u{1F5E1}\uFE0F", knife: "\u{1F5E1}\uFE0F",
@@ -303,6 +346,7 @@ function onLogin() {
   initChat();
   ensurePlayerId(); // start notification listener immediately, even before Chat tab is opened
   initNewsListener();
+  applyAnniversaryTheme();
   // Set online status and start heartbeat
   db.collection("users").doc(currentUser).update({
     online: true,
