@@ -287,26 +287,30 @@ body {
 }
 
 body.anniversary-theme {
-  --bg-primary: #241a00;
-  --bg-secondary: #3d2e05;
-  --bg-card: #4a3a08;
-  --bg-input: #5c4a10;
+  --bg-primary: #FFC30B;
+  --bg-secondary: #FFC30B;
+  --bg-card: #FFD700;
+  --bg-input: #FFD700;
+  --text-primary: #3d2e05;
+  --text-secondary: #6b5518;
+  --border: #b38f00;
 }
 
 body.anniversary-theme .top-bar {
-  border-bottom: 2px solid #ffcc00;
+  border-bottom: 2px solid #3d2e05;
 }
 
 body.anniversary-theme .version-tag {
-  background: #ffcc00;
-  color: #412402;
-  -webkit-text-fill-color: #412402;
+  background: #3d2e05;
+  color: #FFD700;
+  -webkit-text-fill-color: #FFD700;
 }
 
 body.anniversary-theme .specialities-textarea,
 body.anniversary-theme .specialities-textarea:focus {
-  background: #5c4a10 !important;
-  border-color: #6b5518 !important;
+  background: #FFD700 !important;
+  border-color: #b38f00 !important;
+  color: #3d2e05 !important;
 }
 
 .anniversary-confetti {
