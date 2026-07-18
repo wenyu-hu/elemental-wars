@@ -286,6 +286,13 @@ body {
   border-bottom: 1px solid #5a4408;
 }
 
+body.anniversary-theme {
+  --bg-primary: #241a00;
+  --bg-secondary: #3d2e05;
+  --bg-card: #4a3a08;
+  --bg-input: #5c4a10;
+}
+
 body.anniversary-theme .top-bar {
   border-bottom: 2px solid #ffcc00;
 }
@@ -294,6 +301,12 @@ body.anniversary-theme .version-tag {
   background: #ffcc00;
   color: #412402;
   -webkit-text-fill-color: #412402;
+}
+
+body.anniversary-theme .specialities-textarea,
+body.anniversary-theme .specialities-textarea:focus {
+  background: #5c4a10 !important;
+  border-color: #6b5518 !important;
 }
 
 .anniversary-confetti {
