@@ -295,12 +295,13 @@ body.anniversary-theme {
   --text-secondary: #6b5518;
   --border: #b38f00;
   /* Legendary's own gold (#ffcc00) is indistinguishable from the new gold
-     background/cards, so give it a contrasting dark outline in this theme. */
-  --rarity-legendary: #3d2e05;
+     background/cards, so give it a brass tone that still reads as "gold"
+     but is dark/muted enough to stand out. */
+  --rarity-legendary: #9c6b08;
 }
 
 body.anniversary-theme .inv-cell.rarity-legendary {
-  border-color: #3d2e05;
+  border-color: #9c6b08;
 }
 
 body.anniversary-theme .top-bar {
@@ -318,6 +319,18 @@ body.anniversary-theme .specialities-textarea:focus {
   background: #FFD700 !important;
   border-color: #b38f00 !important;
   color: #3d2e05 !important;
+}
+
+/* Pings directed at you normally stand out gold, which now blends into
+   the background — use red instead so they still pop. */
+body.anniversary-theme .mention.mention-self {
+  background: rgba(232, 64, 87, 0.18);
+  color: #e84057;
+}
+
+body.anniversary-theme .chat-msg.mentioned > .chat-msg-bubble {
+  background: rgba(232, 64, 87, 0.12);
+  border: 1px solid rgba(232, 64, 87, 0.35);
 }
 
 .anniversary-confetti {
