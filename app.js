@@ -76,10 +76,13 @@ async function sendStampClaimNotification(stampNumber, reward) {
 }
 
 // --- Login stamps (2nd Anniversary event) ---
-// 15 stamps, one per distinct calendar day logged in during the event
-// window (not consecutive — missing a day doesn't reset anything). The
-// actual reward is handed out in the real tabletop game; claiming a
-// stamp here just notifies the admin via sendStampClaimNotification.
+// One stamp per distinct calendar day logged in during the event window
+// (not consecutive — missing a day doesn't reset anything). The actual
+// reward is handed out in the real tabletop game; claiming a stamp here
+// just notifies the admin via sendStampClaimNotification.
+// NOTE: stamp 15 (Dark Chest) is intentionally left out for now — the
+// user has a different idea for it, to be added back later. Only 14
+// stamps exist until then.
 const STAMP_REWARDS = [
   { icon: "\u{1F4B0}", label: "10 Tokens" },
   { icon: "\u{1F34E}", label: "Apple" },
@@ -95,13 +98,12 @@ const STAMP_REWARDS = [
   { icon: "\u{1F9F0}", label: "Crystal Chest" },
   { icon: "\u{1F48E}", label: "3 Yellow Mega Gems" },
   { icon: "\u{1F48E}", label: "2 Purple Mega Gems" },
-  { icon: "\u{1F9F0}", label: "Dark Chest" },
 ];
 const STAMP_COUNT = STAMP_REWARDS.length;
 
 // Appends today's date to the account's login-day list if it's a new
-// distinct day and we're within the event window, capped at 15 entries.
-// Called once from onLogin(); safe to call multiple times per day.
+// distinct day and we're within the event window, capped at STAMP_COUNT
+// entries. Called once from onLogin(); safe to call multiple times per day.
 // Stored directly on the user's Firestore doc (this app has no
 // localStorage account/progress layer — that's elemental-wars-game).
 async function recordLoginStampDay() {
