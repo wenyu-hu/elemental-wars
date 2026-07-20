@@ -1824,6 +1824,23 @@ input[type="number"] { -moz-appearance: textfield; }
   border-color: var(--accent);
 }
 
+/* Stamp-claim notifications — distinct pink styling so a genuine,
+   system-sent claim can't be mistaken for (or forged as) a normal
+   player-typed message. */
+.chat-msg-bubble.stamp-claim,
+.chat-msg.own .chat-msg-bubble.stamp-claim {
+  background: #fff0f7;
+  border: 2px solid var(--rarity-exclusive);
+  color: #7a1050;
+}
+
+.chat-msg-stamp-label {
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--rarity-exclusive);
+  margin-bottom: 4px;
+}
+
 .chat-msg-edited {
   font-size: 0.65rem;
   color: var(--text-secondary);

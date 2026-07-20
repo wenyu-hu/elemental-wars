@@ -57,6 +57,24 @@ function fireAnniversaryConfettiOnce() {
   setTimeout(() => container.remove(), 4000);
 }
 
+// Sends an unforgeable-looking DM to the admin when a player claims a
+// login stamp. The `type: "stampClaim"` field is only ever set here —
+// never by the manual chat-send box — so buildChatBubble's distinct pink
+// styling can't be reproduced by a player just typing similar text.
+async function sendStampClaimNotification(stampNumber, reward) {
+  if (!currentUser) return;
+  await db.collection("chat").add({
+    username: currentUser,
+    text: `\u{1F389} ${currentUser} has claimed Stamp #${stampNumber}: ${reward}`,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    editedAt: null,
+    replyTo: null,
+    imageUrl: null,
+    recipient: ADMIN_USERNAME,
+    type: "stampClaim",
+  });
+}
+
 // --- Emoji map for inventory ---
 const EMOJI_MAP = {
   sword: "\u2694\uFE0F", swords: "\u2694\uFE0F", blade: "\u2694\uFE0F", dagger: "\u{1F5E1}\uFE0F", knife: "\u{1F5E1}\uFE0F",
@@ -2511,7 +2529,21 @@ function buildChatBubble(id, data) {
   // Bubble
   const bubble = document.createElement("div");
   bubble.className = "chat-msg-bubble";
-  if (data.text) bubble.innerHTML = renderMentionText(data.text);
+  // Stamp-claim notifications get a distinct look (set only by
+  // sendStampClaimNotification, never by the manual chat-send box) so an
+  // admin can immediately tell a real claim from a player-typed forgery.
+  if (data.type === "stampClaim") {
+    bubble.classList.add("stamp-claim");
+    const label = document.createElement("div");
+    label.className = "chat-msg-stamp-label";
+    label.textContent = "\u{1F3C6} Stamp Claim";
+    bubble.appendChild(label);
+  }
+  if (data.text) {
+    const textEl = document.createElement("div");
+    textEl.innerHTML = renderMentionText(data.text);
+    bubble.appendChild(textEl);
+  }
   // Image in message
   if (data.imageUrl) {
     const img = document.createElement("img");
