@@ -284,6 +284,106 @@ body {
   text-align: center;
   padding: 8px 14px;
   border-bottom: 1px solid #5a4408;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.stamp-reopen-btn {
+  background: #facc4d;
+  color: #3d2e05;
+  border: 1px solid #5a4408;
+  font-weight: 700;
+}
+
+.stamp-reopen-btn:hover { background: #ffe08a; }
+
+/* --- Login Stamps modal --- */
+.modal-content-stamps {
+  max-width: 640px;
+}
+
+.stamp-scroll-container {
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding: 24px 0;
+}
+
+.stamp-strip {
+  display: flex;
+  gap: 16px;
+  padding: 0 260px;
+  width: max-content;
+}
+
+.stamp-card {
+  scroll-snap-align: center;
+  flex: 0 0 auto;
+  width: 100px;
+  padding: 12px 8px;
+  border-radius: 10px;
+  text-align: center;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+  cursor: default;
+}
+
+.stamp-card .stamp-icon { font-size: 1.8rem; }
+
+.stamp-card .stamp-number {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.stamp-card .stamp-label {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  min-height: 2.4em;
+}
+
+.stamp-card.locked { opacity: 0.45; }
+
+.stamp-card.unlocked {
+  border-color: #ffd700;
+  cursor: pointer;
+}
+
+.stamp-card.unlocked .stamp-label {
+  color: #ffd700;
+  font-weight: 700;
+}
+
+.stamp-card.claimed {
+  border-color: #ffd700;
+  background: #4a3a08;
+}
+
+.stamp-card.claimed .stamp-number::after { content: " \2713"; color: #ffd700; }
+
+/* "Pop" focus effect — the centered card in the scroll strip scales up */
+.stamp-card.centered {
+  transform: scale(1.22);
+  z-index: 1;
+}
+
+.stamp-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #3d2e05;
+  color: #ffd700;
+  border: 1px solid #5a4408;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  z-index: 2000;
+  transition: opacity 0.3s ease;
 }
 
 body.anniversary-theme {

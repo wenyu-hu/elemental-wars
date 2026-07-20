@@ -47,7 +47,10 @@
       </div>
     </header>
 
-    <div id="anniversary-banner" class="anniversary-banner hidden">Celebrating 2 years of fun!</div>
+    <div id="anniversary-banner" class="anniversary-banner hidden">
+      Celebrating 2 years of fun!
+      <button id="stamp-reopen-btn" class="btn btn-small stamp-reopen-btn">&#x1F3C6; Login Stamps</button>
+    </div>
 
     <div class="dashboard-layout">
       <!-- Sidebar: User Directory -->
@@ -771,6 +774,20 @@
       </div>
     </div>
   </div>
+
+  <!-- Login Stamps Modal (2nd Anniversary event) -->
+  <div id="stamp-modal" class="modal hidden">
+    <div class="modal-content modal-content-stamps">
+      <h3>2nd Anniversary Login Stamps</h3>
+      <div id="stamp-scroll-container" class="stamp-scroll-container">
+        <div id="stamp-strip" class="stamp-strip"></div>
+      </div>
+      <div class="modal-buttons" style="margin-top:16px;">
+        <button class="btn btn-small" id="stamp-modal-close">Close</button>
+      </div>
+    </div>
+  </div>
+  <div id="stamp-toast" class="stamp-toast hidden"></div>
 
   <!-- Pending Approvals Modal -->
   <div id="pending-approvals-modal" class="modal hidden">

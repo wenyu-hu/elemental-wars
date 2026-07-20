@@ -75,6 +75,165 @@ async function sendStampClaimNotification(stampNumber, reward) {
   });
 }
 
+// --- Login stamps (2nd Anniversary event) ---
+// 15 stamps, one per distinct calendar day logged in during the event
+// window (not consecutive — missing a day doesn't reset anything). The
+// actual reward is handed out in the real tabletop game; claiming a
+// stamp here just notifies the admin via sendStampClaimNotification.
+const STAMP_REWARDS = [
+  { icon: "\u{1F4B0}", label: "10 Tokens" },
+  { icon: "\u{1F34E}", label: "Apple" },
+  { icon: "\u{1F9F0}", label: "Normal Chest" },
+  { icon: "\u{1F9EA}", label: "Healing Potion" },
+  { icon: "\u{1F9EA}", label: "Strength Potion" },
+  { icon: "\u{1F9F0}", label: "Normal Chest" },
+  { icon: "\u{1F9EA}", label: "Speed Potion" },
+  { icon: "\u{1F9EA}", label: "Quickstrike Potion" },
+  { icon: "\u{1F9F0}", label: "Ancient Chest" },
+  { icon: "\u{1F48E}", label: "5 Black Mega Gems" },
+  { icon: "\u{1F48E}", label: "4 Blue Mega Gems" },
+  { icon: "\u{1F9F0}", label: "Crystal Chest" },
+  { icon: "\u{1F48E}", label: "3 Yellow Mega Gems" },
+  { icon: "\u{1F48E}", label: "2 Purple Mega Gems" },
+  { icon: "\u{1F9F0}", label: "Dark Chest" },
+];
+const STAMP_COUNT = STAMP_REWARDS.length;
+
+// Appends today's date to the account's login-day list if it's a new
+// distinct day and we're within the event window, capped at 15 entries.
+// Called once from onLogin(); safe to call multiple times per day.
+// Stored directly on the user's Firestore doc (this app has no
+// localStorage account/progress layer — that's elemental-wars-game).
+async function recordLoginStampDay() {
+  if (!isAnniversaryWindow() || !currentUser) return;
+  const docRef = db.collection("users").doc(currentUser);
+  const doc = await docRef.get();
+  const data = doc.data() || {};
+  const days = Array.isArray(data.stampLoginDays) ? data.stampLoginDays : [];
+  const today = new Date().toDateString();
+  if (days.includes(today) || days.length >= STAMP_COUNT) return;
+  days.push(today);
+  await docRef.update({ stampLoginDays: days });
+}
+
+async function getStampProgress() {
+  if (!currentUser) return { unlockedCount: 0, claimed: [] };
+  const doc = await db.collection("users").doc(currentUser).get();
+  const data = doc.data() || {};
+  const days = Array.isArray(data.stampLoginDays) ? data.stampLoginDays : [];
+  const claimed = Array.isArray(data.stampsClaimed) ? data.stampsClaimed : [];
+  return { unlockedCount: Math.min(days.length, STAMP_COUNT), claimed };
+}
+
+function showStampToast(message) {
+  const toast = document.getElementById("stamp-toast");
+  toast.textContent = message;
+  toast.classList.remove("hidden");
+  toast.style.opacity = "1";
+  clearTimeout(showStampToast._t);
+  showStampToast._t = setTimeout(() => {
+    toast.style.opacity = "0";
+    setTimeout(() => toast.classList.add("hidden"), 300);
+  }, 2200);
+}
+
+async function claimStamp(stampNumber) {
+  const { unlockedCount, claimed } = await getStampProgress();
+  if (stampNumber > unlockedCount || claimed.includes(stampNumber)) return;
+  const reward = STAMP_REWARDS[stampNumber - 1].label;
+  const newClaimed = [...claimed, stampNumber];
+  await db.collection("users").doc(currentUser).update({ stampsClaimed: newClaimed });
+  await sendStampClaimNotification(stampNumber, reward);
+  showStampToast("Admin notified of stamp claim!");
+  renderStampModal();
+}
+
+async function renderStampModal() {
+  const { unlockedCount, claimed } = await getStampProgress();
+  const strip = document.getElementById("stamp-strip");
+  strip.innerHTML = "";
+  // Focus the oldest unlocked-but-unclaimed stamp (the "next thing to
+  // claim"); if everything unlocked is already claimed, focus the most
+  // recently unlocked one instead.
+  let focusIdx = 0, foundUnclaimed = false;
+  STAMP_REWARDS.forEach((reward, i) => {
+    const stampNumber = i + 1;
+    const isClaimed  = claimed.includes(stampNumber);
+    const isUnlocked = stampNumber <= unlockedCount;
+    const card = document.createElement("div");
+    card.className = "stamp-card " + (isClaimed ? "claimed" : isUnlocked ? "unlocked" : "locked");
+    card.dataset.stamp = stampNumber;
+    card.innerHTML = `
+      <div class="stamp-icon">${reward.icon}</div>
+      <div class="stamp-number">Stamp ${stampNumber}</div>
+      <div class="stamp-label">${isClaimed ? reward.label : isUnlocked ? "Click to claim!" : reward.label}</div>
+    `;
+    if (isUnlocked && !isClaimed) {
+      card.addEventListener("click", () => claimStamp(stampNumber));
+    }
+    strip.appendChild(card);
+    if (isUnlocked && !foundUnclaimed) {
+      focusIdx = i;
+      if (!isClaimed) foundUnclaimed = true;
+    }
+  });
+  requestAnimationFrame(() => {
+    centerStampCard(focusIdx);
+    updateStampPopEffect();
+  });
+}
+
+// Scrolls the strip so the given card index sits in the horizontal centre.
+function centerStampCard(index) {
+  const container = document.getElementById("stamp-scroll-container");
+  const card = container.querySelectorAll(".stamp-card")[index];
+  if (!card) return;
+  const target = card.offsetLeft + card.offsetWidth / 2 - container.clientWidth / 2;
+  container.scrollLeft = target;
+}
+
+// Whichever stamp card is nearest the horizontal centre of the scroll
+// container gets a "pop" scale-up; every other card resets to normal.
+function updateStampPopEffect() {
+  const container = document.getElementById("stamp-scroll-container");
+  const containerCenter = container.scrollLeft + container.clientWidth / 2;
+  let closest = null, closestDist = Infinity;
+  container.querySelectorAll(".stamp-card").forEach(card => {
+    const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+    const dist = Math.abs(cardCenter - containerCenter);
+    card.classList.remove("centered");
+    if (dist < closestDist) { closestDist = dist; closest = card; }
+  });
+  if (closest) closest.classList.add("centered");
+}
+
+function openStampModal() {
+  renderStampModal();
+  document.getElementById("stamp-modal").classList.remove("hidden");
+}
+
+function closeStampModal() {
+  document.getElementById("stamp-modal").classList.add("hidden");
+}
+
+// Auto-opens the stamp modal once per calendar day per account, on
+// login, while the event window is active — same dedup pattern as the
+// confetti so it doesn't reappear on every page refresh that same day.
+function maybeAutoOpenStampModal() {
+  if (!isAnniversaryWindow() || !currentUser) return;
+  const key = `ewStampModalSeen_${currentUser}`;
+  const today = new Date().toDateString();
+  if (localStorage.getItem(key) === today) return;
+  localStorage.setItem(key, today);
+  openStampModal();
+}
+
+document.getElementById("stamp-scroll-container").addEventListener("scroll", () => {
+  requestAnimationFrame(updateStampPopEffect);
+});
+document.getElementById("stamp-modal-close").addEventListener("click", closeStampModal);
+document.getElementById("stamp-reopen-btn").addEventListener("click", openStampModal);
+
 // --- Emoji map for inventory ---
 const EMOJI_MAP = {
   sword: "\u2694\uFE0F", swords: "\u2694\uFE0F", blade: "\u2694\uFE0F", dagger: "\u{1F5E1}\uFE0F", knife: "\u{1F5E1}\uFE0F",
@@ -353,7 +512,7 @@ authForm.addEventListener("submit", async (e) => {
   }
 });
 
-function onLogin() {
+async function onLogin() {
   localStorage.setItem("ewUser", currentUser);
   viewingUser = null;
   document.getElementById("current-user-display").textContent = currentUser;
@@ -365,6 +524,8 @@ function onLogin() {
   ensurePlayerId(); // start notification listener immediately, even before Chat tab is opened
   initNewsListener();
   applyAnniversaryTheme();
+  await recordLoginStampDay();
+  maybeAutoOpenStampModal();
   // Set online status and start heartbeat
   db.collection("users").doc(currentUser).update({
     online: true,
