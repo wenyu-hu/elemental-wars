@@ -80,9 +80,10 @@ async function sendStampClaimNotification(stampNumber, reward) {
 // (not consecutive — missing a day doesn't reset anything). The actual
 // reward is handed out in the real tabletop game; claiming a stamp here
 // just notifies the admin via sendStampClaimNotification.
-// NOTE: stamp 15 (Dark Chest) is intentionally left out for now — the
-// user has a different idea for it, to be added back later. Only 14
-// stamps exist until then.
+// Stamp 15 (Dark Chest) is a secret bonus: after claiming stamp 14, the
+// player is told (falsely) that there's nothing left. It's marked
+// `secret` so renderStampModal hides its card entirely until the player
+// logs in again anyway and actually unlocks it.
 const STAMP_REWARDS = [
   { icon: "\u{1F4B0}", label: "10 Tokens" },
   { icon: "\u{1F34E}", label: "Apple" },
@@ -98,6 +99,7 @@ const STAMP_REWARDS = [
   { icon: "\u{1F9F0}", label: "Crystal Chest" },
   { icon: "\u{1F48E}", label: "3 Yellow Mega Gems" },
   { icon: "\u{1F48E}", label: "2 Purple Mega Gems" },
+  { icon: "\u{1F9F0}", label: "Dark Chest", secret: true },
 ];
 const STAMP_COUNT = STAMP_REWARDS.length;
 
@@ -139,6 +141,15 @@ function showStampToast(message) {
   }, 2200);
 }
 
+function showTrollMessage(text) {
+  document.getElementById("stamp-troll-text").textContent = text;
+  document.getElementById("stamp-troll-modal").classList.remove("hidden");
+}
+
+document.getElementById("stamp-troll-close").addEventListener("click", () => {
+  document.getElementById("stamp-troll-modal").classList.add("hidden");
+});
+
 async function claimStamp(stampNumber) {
   const { unlockedCount, claimed } = await getStampProgress();
   if (stampNumber > unlockedCount || claimed.includes(stampNumber)) return;
@@ -148,6 +159,12 @@ async function claimStamp(stampNumber) {
   await sendStampClaimNotification(stampNumber, reward);
   showStampToast("Admin notified of stamp claim!");
   renderStampModal();
+  // Stamp 14 is (as far as the player knows) the last one — bait them
+  // into thinking the event is over. Stamp 15 (Dark Chest) is real and
+  // secretly unlocks if they log in again anyway.
+  if (stampNumber === 14) {
+    showTrollMessage("Okay, that's it! You've gotten 2 weeks of rewards! There's absolutely NO NEED to log in again, because there are definitely NO more rewards left!");
+  }
 }
 
 async function renderStampModal() {
@@ -157,11 +174,14 @@ async function renderStampModal() {
   // Focus the oldest unlocked-but-unclaimed stamp (the "next thing to
   // claim"); if everything unlocked is already claimed, focus the most
   // recently unlocked one instead.
-  let focusIdx = 0, foundUnclaimed = false;
+  let focusIdx = 0, foundUnclaimed = false, renderedIdx = 0;
   STAMP_REWARDS.forEach((reward, i) => {
     const stampNumber = i + 1;
     const isClaimed  = claimed.includes(stampNumber);
     const isUnlocked = stampNumber <= unlockedCount;
+    // Secret stamps (stamp 15) stay completely out of the strip until
+    // actually unlocked — no grayed-out preview card giving it away.
+    if (reward.secret && !isUnlocked) return;
     const card = document.createElement("div");
     card.className = "stamp-card " + (isClaimed ? "claimed" : isUnlocked ? "unlocked" : "locked");
     card.dataset.stamp = stampNumber;
@@ -175,9 +195,10 @@ async function renderStampModal() {
     }
     strip.appendChild(card);
     if (isUnlocked && !foundUnclaimed) {
-      focusIdx = i;
+      focusIdx = renderedIdx;
       if (!isClaimed) foundUnclaimed = true;
     }
+    renderedIdx++;
   });
   requestAnimationFrame(() => {
     centerStampCard(focusIdx);
